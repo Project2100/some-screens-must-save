@@ -328,7 +328,7 @@ void InitD3D(HWND windowHandle) {
         .BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,     // how swap chain is to be used
         .OutputWindow = windowHandle,                       // the application window to be used
         .SampleDesc = msDesc,
-        .Windowed = TRUE,                                  // start windowed or fullscreen
+        .Windowed = FALSE,                                  // start windowed or fullscreen
         .SwapEffect = DXGI_SWAP_EFFECT_DISCARD,             // Options for handling pixels in a display surface after calling IDXGISwapChain.present(...)
     };
 
