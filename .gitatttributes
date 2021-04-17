@@ -1,0 +1,10 @@
+*               text=auto
+
+*.c             text diff=c
+*.h             text diff=c
+Makefile        text
+*.hlsl          text diff=c
+
+.gitattributes export-ignore
+.gitignore     export-ignore
+.gitkeep       export-ignore
