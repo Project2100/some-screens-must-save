@@ -1,0 +1,22 @@
+#include <windows.h>
+#include <scrnsave.h>
+
+ID_APP ICON SSMS.ICO
+STRINGTABLE {
+    IDS_DESCRIPTION "Some screens must save"
+}
+
+DLG_SCRNSAVECONFIGURE DIALOG 6, 18, 160, 63
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+STYLE DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "How will you save your screen?"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    LTEXT         "Nothing to configure yet!", 0, 6, 9, 140, 8
+//    GROUPBOX      "Redraw Speed", 101, 0, 6, 98, 40
+//    SCROLLBAR     0, 5, 31, 89, 10
+//    LTEXT         "Fast", 103, 6, 21, 20, 8
+//    LTEXT         "Slow", 104, 75, 21, 20, 8
+//    PUSHBUTTON    "OK", IDOK, 117, 10, 40, 14
+//    PUSHBUTTON    "Cancel", IDCANCEL, 117, 32, 40, 14
+END

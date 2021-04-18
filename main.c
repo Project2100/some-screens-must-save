@@ -11,7 +11,8 @@
 #include <stdio.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
-// #include <ScrnSave.h>
+#include <ScrnSave.h>
+#include <CommCtrl.h>
 
 // A way to link static libraries
 #pragma comment(lib, "user32.lib")
@@ -19,19 +20,26 @@
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "d3dcompiler.lib")
 
+// All the stuff required to allow this to be an actual screensaver
+#pragma comment(lib, "comctl32.lib")
+#pragma comment(lib, "Advapi32.lib")
+#pragma comment(lib, "gdi32.lib")
+#pragma comment(lib, "ScrnSavW.lib")
+#pragma comment(linker, "/subsystem:windows")
+
 // The files containing the shaders' source code
 #define VERTEX_SHADER_FILENAME L"vertex.hlsl"
 #define PIXEL_SHADER_FILENAME L"pixel.hlsl"
 
 // The log files
-#define LOG_MAIN_FILENAME "application.log"
-#define LOG_D3D_FILENAME "d3d.log"
+// #define LOG_MAIN_FILENAME "application.log"
+// #define LOG_D3D_FILENAME "d3d.log"
 
 
 
 // Logging stuff: The file is for general purpose, the info queue is used to dump d3d messages to another file
-FILE* instanceLog;
-ID3D11InfoQueue* debugQueue;
+// FILE* instanceLog;
+// ID3D11InfoQueue* debugQueue;
 
 // Direct3D infrastructure
 ID3D11Device* graphicsDevice;
@@ -297,7 +305,20 @@ transformMatrices transforms = {
 
 
 // The whole process of firing up DirectX
-void InitD3D(HWND windowHandle) {
+void InitD3D(HWND windowHandle, int width, int height) {
+
+
+
+    // WINDOWINFO wInfo = {0};
+    // GetWindowInfo(windowHandle, &wInfo);
+
+
+
+    int fsWidth = GetSystemMetrics(SM_CXFULLSCREEN);
+    int fsHeight = GetSystemMetrics(SM_CYFULLSCREEN);
+
+
+
 
     // This is the value that gets constantly checked for potential problems, almost always used by invocations from graphicsDevice
     HRESULT code;
@@ -325,10 +346,15 @@ void InitD3D(HWND windowHandle) {
                                                     // If you create a swap chain with one buffer, specifying DXGI_SWAP_EFFECT_SEQUENTIAL does not cause the contents of the single buffer to be swapped with the front buffer.
                                                     // When you call IDXGIFactory::CreateSwapChain to create a full-screen swap chain, you typically include the front buffer in this value.
         .BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM,    // describes the backbuffer display mode: use 32-bit color
+        // .BufferDesc.Width = wInfo.rcClient.right - wInfo.rcClient.left,
+        // .BufferDesc.Height = wInfo.rcClient.bottom - wInfo.rcClient.top,
+        .BufferDesc.Width = width,
+        .BufferDesc.Height = height,
         .BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,     // how swap chain is to be used
         .OutputWindow = windowHandle,                       // the application window to be used
         .SampleDesc = msDesc,
-        .Windowed = FALSE,                                  // start windowed or fullscreen
+        // .Windowed = FALSE,                                  // start windowed or fullscreen
+        .Windowed = (width == fsWidth && height == fsHeight) ? FALSE : TRUE,
         .SwapEffect = DXGI_SWAP_EFFECT_DISCARD,             // Options for handling pixels in a display surface after calling IDXGISwapChain.present(...)
     };
 
@@ -349,24 +375,24 @@ void InitD3D(HWND windowHandle) {
             &implementedFeatureLevel,
             &graphicsPipeline
     );
-    if (FAILED(code)) {
-        fprintf(instanceLog, "Failed creating Direct3D infrastructure: code %lx\n", code);
-        ExitProcess(EXIT_FAILURE);
-    }
-    fprintf(instanceLog, "Direct3D infrastructure established: code %lx\n", code);
+    // if (FAILED(code)) {
+    //     fprintf(instanceLog, "Failed creating Direct3D infrastructure: code %lx\n", code);
+    //     ExitProcess(EXIT_FAILURE);
+    // }
+    // fprintf(instanceLog, "Direct3D infrastructure established: code %lx\n", code);
 
-    fprintf(instanceLog, "Feature level available: %x\n", implementedFeatureLevel);
-    swapChain->lpVtbl->GetDesc(swapChain, &swapChainDescription);
-    fprintf(instanceLog, "Buffer resolution: %u x %u\n", swapChainDescription.BufferDesc.Width, swapChainDescription.BufferDesc.Height);
-    fprintf(instanceLog, "Buffer refresh rate: %u / %u\n", swapChainDescription.BufferDesc.RefreshRate.Numerator, swapChainDescription.BufferDesc.RefreshRate.Denominator);
+    // fprintf(instanceLog, "Feature level available: %x\n", implementedFeatureLevel);
+    // swapChain->lpVtbl->GetDesc(swapChain, &swapChainDescription);
+    // fprintf(instanceLog, "Buffer resolution: %u x %u\n", swapChainDescription.BufferDesc.Width, swapChainDescription.BufferDesc.Height);
+    // fprintf(instanceLog, "Buffer refresh rate: %u / %u\n", swapChainDescription.BufferDesc.RefreshRate.Numerator, swapChainDescription.BufferDesc.RefreshRate.Denominator);
 
     // Get the debug log
-    code = graphicsDevice->lpVtbl->QueryInterface(graphicsDevice, &IID_ID3D11InfoQueue, (LPVOID) &debugQueue);
-    if (FAILED(code)) {
-        fprintf(instanceLog, "Failed getting debug queue: code %lx\n", code);
-        ExitProcess(EXIT_FAILURE);
-    }
-    fprintf(instanceLog, "Debug queue acquired: code %lx\n", code);
+    // code = graphicsDevice->lpVtbl->QueryInterface(graphicsDevice, &IID_ID3D11InfoQueue, (LPVOID) &debugQueue);
+    // if (FAILED(code)) {
+    //     fprintf(instanceLog, "Failed getting debug queue: code %lx\n", code);
+    //     ExitProcess(EXIT_FAILURE);
+    // }
+    // fprintf(instanceLog, "Debug queue acquired: code %lx\n", code);
 
 
 
@@ -380,20 +406,21 @@ void InitD3D(HWND windowHandle) {
     ID3D11Texture2D *pBackBuffer;
     // WHATEVER-CAST
     code = swapChain->lpVtbl->GetBuffer(swapChain, 0, &IID_ID3D11Texture2D, (LPVOID*) &pBackBuffer);
-    if (FAILED(code)) {
-        fprintf(instanceLog, "Failed getting swapchain backbuffer: code %lx\n", code);
-        ExitProcess(EXIT_FAILURE);
-    }
-    fprintf(instanceLog, "Acquired backbuffer: code %lx\n", code);
+    // if (FAILED(code)) {
+    //     fprintf(instanceLog, "Failed getting swapchain backbuffer: code %lx\n", code);
+    //     ExitProcess(EXIT_FAILURE);
+    // }
+    // fprintf(instanceLog, "Acquired backbuffer: code %lx\n", code);
+
     // use the back buffer address to create the render target
     // MSDN: Creates a render-target view for accessing resource data
     // DOWNCAST
     code = graphicsDevice->lpVtbl->CreateRenderTargetView(graphicsDevice, (LPVOID) pBackBuffer, NULL, &renderTargetView);
-    if (FAILED(code)) {
-        fprintf(instanceLog, "Failed creating render target view: code %lx\n", code);
-        ExitProcess(EXIT_FAILURE);
-    }
-    fprintf(instanceLog, "Render target view created: code %lx\n", code);
+    // if (FAILED(code)) {
+    //     fprintf(instanceLog, "Failed creating render target view: code %lx\n", code);
+    //     ExitProcess(EXIT_FAILURE);
+    // }
+    // fprintf(instanceLog, "Render target view created: code %lx\n", code);
     pBackBuffer->lpVtbl->Release(pBackBuffer);
 
 
@@ -413,11 +440,12 @@ void InitD3D(HWND windowHandle) {
         .BindFlags  = D3D11_BIND_DEPTH_STENCIL,
     };
     code = graphicsDevice->lpVtbl->CreateTexture2D(graphicsDevice, &depthStencilDesc, NULL, &depthStencilBuffer);
-    if (FAILED(code)) {
-        fprintf(instanceLog, "Failed creating depth stencil texture: code %lx\n", code);
-        ExitProcess(EXIT_FAILURE);
-    }
-    fprintf(instanceLog, "Depth stencil texture created: code %lx\n", code);
+    // if (FAILED(code)) {
+    //     fprintf(instanceLog, "Failed creating depth stencil texture: code %lx\n", code);
+    //     ExitProcess(EXIT_FAILURE);
+    // }
+    // fprintf(instanceLog, "Depth stencil texture created: code %lx\n", code);
+
     // Take caution with the ViewDimension parameter, as it must correspond to the underlying buffer's characteristics
     D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = (D3D11_DEPTH_STENCIL_VIEW_DESC) {
         .Format = depthStencilFormat,
@@ -425,11 +453,11 @@ void InitD3D(HWND windowHandle) {
     };
     // DOWNCAST
     code = graphicsDevice->lpVtbl->CreateDepthStencilView(graphicsDevice, (LPVOID) depthStencilBuffer, &descDSV, &depthStencilView);
-    if (FAILED(code)) {
-        fprintf(instanceLog, "Failed creating DS view: code %lx\n", code);
-        ExitProcess(EXIT_FAILURE);
-    }
-    fprintf(instanceLog, "DS view created: code %lx\n", code);
+    // if (FAILED(code)) {
+    //     fprintf(instanceLog, "Failed creating DS view: code %lx\n", code);
+    //     ExitProcess(EXIT_FAILURE);
+    // }
+    // fprintf(instanceLog, "DS view created: code %lx\n", code);
 
 
     // Finally, Bind the views together to the Output Merger stage
@@ -477,30 +505,30 @@ void InitD3D(HWND windowHandle) {
     // Take the HLSL sources for the vertex and pixel stages, compile them, and set them up in the pipeline
     ID3D10Blob *vsBlob, *psBlob;
     code = D3DCompileFromFile(VERTEX_SHADER_FILENAME, NULL, NULL, "VShader", "vs_5_0", 0, 0, &vsBlob, NULL);
-    if (FAILED(code)) {
-        fprintf(instanceLog, "Failed compiling vertex shader: code %lx\n", code);
-        ExitProcess(EXIT_FAILURE);
-    }
-    fprintf(instanceLog, "Vertex shader compiled: code %lx\n", code);
+    // if (FAILED(code)) {
+    //     fprintf(instanceLog, "Failed compiling vertex shader: code %lx\n", code);
+    //     ExitProcess(EXIT_FAILURE);
+    // }
+    // fprintf(instanceLog, "Vertex shader compiled: code %lx\n", code);
     code = D3DCompileFromFile(PIXEL_SHADER_FILENAME, NULL, NULL, "PShader", "ps_5_0", 0, 0, &psBlob, NULL);
-    if (FAILED(code)) {
-        fprintf(instanceLog, "Failed compiling pixel shader: code %lx\n", code);
-        ExitProcess(EXIT_FAILURE);
-    }
-    fprintf(instanceLog, "Pixel shader compiled: code %lx\n", code);
+    // if (FAILED(code)) {
+    //     fprintf(instanceLog, "Failed compiling pixel shader: code %lx\n", code);
+    //     ExitProcess(EXIT_FAILURE);
+    // }
+    // fprintf(instanceLog, "Pixel shader compiled: code %lx\n", code);
     
     code = graphicsDevice->lpVtbl->CreateVertexShader(graphicsDevice, vsBlob->lpVtbl->GetBufferPointer(vsBlob), vsBlob->lpVtbl->GetBufferSize(vsBlob), NULL, &vertexShader);
-    if (FAILED(code)) {
-        fprintf(instanceLog, "Failed creating vertex shader: code %lx\n", code);
-        ExitProcess(EXIT_FAILURE);
-    }
-    fprintf(instanceLog, "Vertex shader created: code %lx\n", code);
+    // if (FAILED(code)) {
+    //     fprintf(instanceLog, "Failed creating vertex shader: code %lx\n", code);
+    //     ExitProcess(EXIT_FAILURE);
+    // }
+    // fprintf(instanceLog, "Vertex shader created: code %lx\n", code);
     code = graphicsDevice->lpVtbl->CreatePixelShader(graphicsDevice, psBlob->lpVtbl->GetBufferPointer(psBlob), psBlob->lpVtbl->GetBufferSize(psBlob), NULL, &pixelShader);
-    if (FAILED(code)) {
-        fprintf(instanceLog, "Failed creating pixel shader: code %lx\n", code);
-        ExitProcess(EXIT_FAILURE);
-    }
-    fprintf(instanceLog, "Pixel shader created: code %lx\n", code);
+    // if (FAILED(code)) {
+    //     fprintf(instanceLog, "Failed creating pixel shader: code %lx\n", code);
+    //     ExitProcess(EXIT_FAILURE);
+    // }
+    // fprintf(instanceLog, "Pixel shader created: code %lx\n", code);
     
     graphicsPipeline->lpVtbl->VSSetShader(graphicsPipeline, vertexShader, NULL, 0);
     graphicsPipeline->lpVtbl->PSSetShader(graphicsPipeline, pixelShader, NULL, 0);
@@ -525,11 +553,11 @@ void InitD3D(HWND windowHandle) {
         .AntialiasedLineEnable = TRUE
     };
     code = graphicsDevice->lpVtbl->CreateRasterizerState(graphicsDevice, &rasterizerDesc, &rasterizerState);
-    if (FAILED(code)) {
-        fprintf(instanceLog, "Failed setting rasterizer: code %lx\n", code);
-        ExitProcess(EXIT_FAILURE);
-    }
-    fprintf(instanceLog, "Rasterizer set: code %lx\n", code);
+    // if (FAILED(code)) {
+    //     fprintf(instanceLog, "Failed setting rasterizer: code %lx\n", code);
+    //     ExitProcess(EXIT_FAILURE);
+    // }
+    // fprintf(instanceLog, "Rasterizer set: code %lx\n", code);
     graphicsPipeline->lpVtbl->RSSetState(graphicsPipeline, rasterizerState);
 
 
@@ -564,11 +592,11 @@ void InitD3D(HWND windowHandle) {
         .BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS,
     };
     code = graphicsDevice->lpVtbl->CreateDepthStencilState(graphicsDevice, &dsDesc, &depthStencilState);
-    if (FAILED(code)) {
-        fprintf(instanceLog, "Failed setting depth/stencil: code %lx\n", code);
-        ExitProcess(EXIT_FAILURE);
-    }
-    fprintf(instanceLog, "Depth/stencil set: code %lx\n", code);
+    // if (FAILED(code)) {
+    //     fprintf(instanceLog, "Failed setting depth/stencil: code %lx\n", code);
+    //     ExitProcess(EXIT_FAILURE);
+    // }
+    // fprintf(instanceLog, "Depth/stencil set: code %lx\n", code);
     graphicsPipeline->lpVtbl->OMSetDepthStencilState(graphicsPipeline, depthStencilState, 1);
 
 
@@ -579,11 +607,11 @@ void InitD3D(HWND windowHandle) {
 
     // Instruct the Input Assembly stage on how the vertex data is structured, and what kind of primitive is expected from it to draw
     code = graphicsDevice->lpVtbl->CreateInputLayout(graphicsDevice, vertexInputSpec, 2, vsBlob->lpVtbl->GetBufferPointer(vsBlob), vsBlob->lpVtbl->GetBufferSize(vsBlob), &inputLayout);
-    if (FAILED(code)) {
-        fprintf(instanceLog, "Failed creating input layout: code %lx\n", code);
-        ExitProcess(EXIT_FAILURE);
-    }
-    fprintf(instanceLog, "Input layout created: code %lx\n", code);
+    // if (FAILED(code)) {
+    //     fprintf(instanceLog, "Failed creating input layout: code %lx\n", code);
+    //     ExitProcess(EXIT_FAILURE);
+    // }
+    // fprintf(instanceLog, "Input layout created: code %lx\n", code);
     graphicsPipeline->lpVtbl->IASetInputLayout(graphicsPipeline, inputLayout);
 
     graphicsPipeline->lpVtbl->IASetPrimitiveTopology(graphicsPipeline, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -614,11 +642,11 @@ void InitD3D(HWND windowHandle) {
         .SysMemSlicePitch = 0,
     };
     code = graphicsDevice->lpVtbl->CreateBuffer(graphicsDevice, &vBufferSpec, &vInitData, &shapeBuffer);
-    if (FAILED(code)) {
-        fprintf(instanceLog, "Failed creating vertex buffer: code %lx\n", code);
-        ExitProcess(EXIT_FAILURE);
-    }
-    fprintf(instanceLog, "Vertex buffer created: code %lx\n", code);
+    // if (FAILED(code)) {
+    //     fprintf(instanceLog, "Failed creating vertex buffer: code %lx\n", code);
+    //     ExitProcess(EXIT_FAILURE);
+    // }
+    // fprintf(instanceLog, "Vertex buffer created: code %lx\n", code);
     UINT stride = sizeof (vertex);
     UINT offset = 0;
     graphicsPipeline->lpVtbl->IASetVertexBuffers(graphicsPipeline, 0, 1, &shapeBuffer, &stride, &offset);
@@ -636,11 +664,11 @@ void InitD3D(HWND windowHandle) {
         .SysMemSlicePitch = 0,
     };
     code = graphicsDevice->lpVtbl->CreateBuffer(graphicsDevice, &iBufferDesc, &iInitData, &indexBuffer);
-    if (FAILED(code)) {
-        fprintf(instanceLog, "Failed creating index buffer: code %lx\n", code);
-        ExitProcess(EXIT_FAILURE);
-    }
-    fprintf(instanceLog, "Index buffer created: code %lx\n", code);
+    // if (FAILED(code)) {
+    //     fprintf(instanceLog, "Failed creating index buffer: code %lx\n", code);
+    //     ExitProcess(EXIT_FAILURE);
+    // }
+    // fprintf(instanceLog, "Index buffer created: code %lx\n", code);
     graphicsPipeline->lpVtbl->IASetIndexBuffer(graphicsPipeline, indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
 
@@ -657,16 +685,16 @@ void InitD3D(HWND windowHandle) {
         .SysMemSlicePitch = 0,
     };
     code = graphicsDevice->lpVtbl->CreateBuffer(graphicsDevice, &cBufferDesc, &cInitData, &transformBuffer);
-    if (FAILED(code)) {
-        fprintf(instanceLog, "Failed creating transform buffer: code %lx\n", code);
-        ExitProcess(EXIT_FAILURE);
-    }
-    fprintf(instanceLog, "Transform buffer created: code %lx\n", code);
+    // if (FAILED(code)) {
+    //     fprintf(instanceLog, "Failed creating transform buffer: code %lx\n", code);
+    //     ExitProcess(EXIT_FAILURE);
+    // }
+    // fprintf(instanceLog, "Transform buffer created: code %lx\n", code);
     graphicsPipeline->lpVtbl->VSSetConstantBuffers(graphicsPipeline, 0, 1, &transformBuffer);
 
 
 
-    fprintf(instanceLog, "Init graphics done\n");
+    // fprintf(instanceLog, "Init graphics done\n");
 }
 
 
@@ -741,121 +769,125 @@ void RenderFrame() {
 
 
 
-LRESULT CALLBACK WindowProc(HWND windowHandle, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-    switch (uMsg) {
 
-        // Default process doesn't terminate application on window destruction (different from WM_CLOSE)
+// RATIONALE: The window is set to fullscreen at native resolution, and the viewport is set as square. Hence, viewport size is bound by the smallest dimension
+// This is effectively the custom screensaver's "side" entry point
+LRESULT WINAPI ScreenSaverProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+
+    switch (message) {
+
+    case WM_CREATE: 
+        
+        // A makeshift stdout
+        // instanceLog = fopen(LOG_MAIN_FILENAME, "w");
+        // setvbuf(instanceLog, NULL, _IONBF, 0);
+
+        // Get window info, desperately needed
+        CREATESTRUCT* wInfo = (CREATESTRUCT*) lParam;
+
+        //get configuration from registry
+        // GetConfig();
+
+        // Initialize the orientation matrix
+        transforms.orientMatrix[0][0] = cos(M_PI_4);
+        transforms.orientMatrix[0][1] = -sin(M_PI_4);
+        transforms.orientMatrix[1][0] = sin(M_PI_4);
+        transforms.orientMatrix[1][1] = cos(M_PI_4);
+
+        InitD3D(hWnd, wInfo->cx, wInfo->cy);
+
+        // SetTimer(hWnd, 1, 16, NULL);
+
+        return 0;
+    
     case WM_DESTROY:
-        PostQuitMessage(0);
+    
+        // fprintf(instanceLog, "Out of the loop. Terminating\n");
+
+        // // Flush the device's debug log into the file
+        // FILE* devlog = fopen(LOG_D3D_FILENAME, "w");
+        // SYSTEMTIME st;
+        // GetLocalTime(&st);
+        // fprintf(devlog, "Executed at time: %02d:%02d\n", st.wHour, st.wMinute);
+
+        // int a = debugQueue->lpVtbl->GetNumStoredMessagesAllowedByRetrievalFilter(debugQueue);
+        // for (int i = a - 1; a >= 0; a--) {
+
+        //     size_t len;
+        //     debugQueue->lpVtbl->GetMessageW(debugQueue, i, NULL, &len);
+        //     D3D11_MESSAGE* debugMessage = malloc(len);
+        //     debugQueue->lpVtbl->GetMessageW(debugQueue, i, debugMessage, &len);
+        //     fprintf(devlog, "%s\n", debugMessage->pDescription);
+        //     free(debugMessage);
+        // }
+        // fclose(devlog);
+
+        // All done, close eveything
+        CleanD3D();
+        // fclose(instanceLog);
         return 0;
 
-        // Note: Paint messages can be ignored, as DirectX is doing all the drawing
+    // case WM_TIMER:
     case WM_PAINT:
+        RenderFrame();
         return 0;
-
-    default:
-        return DefWindowProc(windowHandle, uMsg, wParam, lParam);
     }
+
+    return DefScreenSaverProc(hWnd, message, wParam, lParam);
+
 }
 
 
 
+BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
+    (void) lParam;
 
-// BUG: Exiting fullscreen hides window!
-// Not fixing it, as the main itself is a temporary solution which I will get rid of once I transform this program in a true screen saver
-//
-// RATIONALE: The window is set to fullscreen at native resolution, and the viewport is set as square. Hence, viewport size is bound by the smallest dimension
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow) {
-    (void) hPrevInstance;
-    (void) lpCmdLine;
+    InitCommonControls();  
+    // would need this for slider bars or other common controls
 
-    // A makeshift stdout
-    instanceLog = fopen(LOG_MAIN_FILENAME, "w");
-    setvbuf(instanceLog, NULL, _IONBF, 0);
+    // HWND aCheck;
 
-    // Register the window class. A window class defines icons and stuff; practically application-specific
-    const wchar_t* CLASS_NAME = L"Sample Window Class";
-    WNDCLASS wc = (WNDCLASS) { 
-        .lpfnWndProc   = WindowProc,
-        .hInstance     = hInstance,
-        .lpszClassName = CLASS_NAME,
-    };
-    RegisterClass(&wc);
+    switch (message) {
 
-    // Do create a window now
-    const wchar_t* windowTitle = L"Learn to Program DirectX";
-    HWND windowHandle = CreateWindowEx(
-            0,                              // Optional window styles.
-            CLASS_NAME,                     // Window class
-            windowTitle,                    // Window text
-            WS_OVERLAPPEDWINDOW,            // Window style -- windowed
-            // WS_EX_TOPMOST | WS_POPUP,    // fullscreen values  -- not working anymore
+    case WM_INITDIALOG:
+            LoadString(hMainInstance, IDS_DESCRIPTION, szAppName, APPNAMEBUFFERLEN);
 
-            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, // Size and position
-            // CW_USEDEFAULT, CW_USEDEFAULT, 800, 600,
+            // GetConfig();
 
-            NULL,                           // Parent window    
-            NULL,                           // Menu
-            hInstance,                      // Instance handle
-            NULL                            // Additional application data
-    );
-    if (windowHandle == NULL) {
-        // Welp, can't even have a window
-        fprintf(instanceLog, "Failed creating a window: code %lx\n", GetLastError());
-        return -1;
+            // aCheck = GetDlgItem( hDlg, IDC_TUMBLE );
+            // SendMessage( aCheck, BM_SETCHECK, bTumble ? BST_CHECKED : BST_UNCHECKED, 0 );
+
+        return TRUE;
+
+    case WM_COMMAND:
+        switch (LOWORD(wParam)) { 
+
+        // case IDC_TUMBLE:
+        //     bTumble = (IsDlgButtonChecked( hDlg, IDC_TUMBLE ) == BST_CHECKED);
+        //     return TRUE;
+
+        //     //cases for other controls would go here
+
+        case IDOK:
+            // WriteConfig(hDlg);      //get info from controls
+            EndDialog( hDlg, LOWORD( wParam ) == IDOK ); 
+            return TRUE; 
+
+        case IDCANCEL: 
+            EndDialog( hDlg, LOWORD( wParam ) == IDOK ); 
+            return TRUE;   
+        }
+    
     }
+    //end command switch
+
+    return FALSE; 
+}
 
 
-    // Initialize the orientation matrix
-    transforms.orientMatrix[0][0] = cos(M_PI_4);
-    transforms.orientMatrix[0][1] = -sin(M_PI_4);
-    transforms.orientMatrix[1][0] = sin(M_PI_4);
-    transforms.orientMatrix[1][1] = cos(M_PI_4);
 
-
-    // Start the engines!
-    InitD3D(windowHandle);
-
-
-    // The "setVisible(true)" part
-    fprintf(instanceLog, "Showing window\n");
-    ShowWindow(windowHandle, nCmdShow);
-
-
-    // Run the message loop. Prabably analogous to the EventQueue
-    MSG msg = {0};
-    while (GetMessage(&msg, NULL, 0, 0))
-    {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-
-        // D3D - Render the graphics
-        RenderFrame();
-    }
-    fprintf(instanceLog, "Out of the loop. Terminating\n");
-
-    // Flush the device's debug log into the file
-    FILE* devlog = fopen(LOG_D3D_FILENAME, "w");
-    SYSTEMTIME st;
-    GetLocalTime(&st);
-    fprintf(devlog, "Executed at time: %02d:%02d\n", st.wHour, st.wMinute);
-
-    int a = debugQueue->lpVtbl->GetNumStoredMessagesAllowedByRetrievalFilter(debugQueue);
-    for (int i = a - 1; a >= 0; a--) {
-
-        size_t len;
-        debugQueue->lpVtbl->GetMessageW(debugQueue, i, NULL, &len);
-        D3D11_MESSAGE* debugMessage = malloc(len);
-        debugQueue->lpVtbl->GetMessageW(debugQueue, i, debugMessage, &len);
-        fprintf(devlog, "%s\n", debugMessage->pDescription);
-        free(debugMessage);
-    }
-    fclose(devlog);
-
-    // All done, close eveything
-    CleanD3D();
-    fclose(instanceLog);
-
-    return 0;
+// needed for SCRNSAVE.LIB
+BOOL WINAPI RegisterDialogClasses(HANDLE hInst) {
+    (void) hInst;
+    return TRUE;
 }

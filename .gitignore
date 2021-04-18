@@ -84,5 +84,11 @@ $RECYCLE.BIN/
 
 # End of https://www.toptal.com/developers/gitignore/api/c,windows
 
+*.scr
+*.res
+
 # Ignoring the generated log files
 *.log
+
+# Ignoring VSCode configs, they aren't necessary
+.vscode/**
