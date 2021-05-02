@@ -1,16 +1,16 @@
 .PHONY: all run clean
 
-CC       = clang
-CSFLAGS  = -Wall -Wpedantic -Wextra -Wshadow -Wformat=2 -Wundef -std=c17
-
-all: #resource.res
-	$(CC) $(CSFLAGS) -o ssms.scr resource.res main.c
+all: resource.res graphics.obj
+	cl /nologo /W3 /std:c17 /Fe:ssms.scr resource.res main.c graphics.obj
 
 run:
 	ssms.scr /s
 
 clean:
-	rm ssms.scr resource.res application.log d3d.log
+	rm -f ssms.scr *.res *.obj *.pdb *.log
 
-# resource.res: resource.rc
-# 	rc resource.rc
+resource.res: resource.rc
+	rc /nologo resource.rc
+
+.c.obj:
+	cl /nologo /W3 /std:c17 /c $<
