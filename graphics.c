@@ -1,21 +1,21 @@
 #include "graphics.h"
 
-#include <d3d11.h>
-#include <d3dcompiler.h>
-
-#include <stdlib.h>
-
 // Needed for PI and trig functions
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <d3d11.h>
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxguid.lib")
-#pragma comment(lib, "d3dcompiler.lib")
 
-// The files containing the shaders' source code
-#define VERTEX_SHADER_FILENAME L"vertex.hlsl"
-#define PIXEL_SHADER_FILENAME L"pixel.hlsl"
+#ifdef DEBUG
+#include "debug.h"
+#endif
+
+#include "vertex.h"
+#include "pixel.h"
+
+
 
 
 // Graphics device log
@@ -347,7 +347,7 @@ void squareViewport(int screenWidth, int screenHeight) {
 
 
 // The whole process of firing up DirectX
-void InitD3D(HWND windowHandle, int width, int height, FILE* instanceLog) {
+void InitD3D(HWND windowHandle, int width, int height) {
 
     
     // Initialize the orientation matrix
@@ -400,8 +400,11 @@ void InitD3D(HWND windowHandle, int width, int height, FILE* instanceLog) {
             NULL,                       // Video adapter to use, NULL for default adapter
             D3D_DRIVER_TYPE_HARDWARE,   // Video adapter rendering type (Hardware / Software / ...)
             NULL,                       // Software rasterizer, mandatory if driver type is software
-            D3D11_CREATE_DEVICE_SINGLETHREADED | D3D11_CREATE_DEVICE_DEBUG, // ORable flags for rendering levels - Debug flag enables the InfoQueue messages
-            // D3D11_CREATE_DEVICE_SINGLETHREADED, // ORable flags for rendering levels - Debug flag enables the InfoQueue messages
+#ifdef DEBUG
+            D3D11_CREATE_DEVICE_SINGLETHREADED | D3D11_CREATE_DEVICE_DEBUG, // ORable flags for rendering levels - Debug flagenables the InfoQueue messages
+#else
+            D3D11_CREATE_DEVICE_SINGLETHREADED, // ORable flags for rendering levels - Debug flag enables the InfoQueue messages
+#endif
             NULL,                       // An array of feature level requests, sorted by desirability; NULL is equivalent to a version list sorted by most recent (D3D11)
             0,                          // Size of the previous array
             D3D11_SDK_VERSION,          // Yeah... keep it like that
@@ -411,17 +414,24 @@ void InitD3D(HWND windowHandle, int width, int height, FILE* instanceLog) {
             &implementedFeatureLevel,
             &graphicsPipeline
     );
+#ifdef DEBUG
     if (FAILED(code)) {
         fprintf(instanceLog, "Failed creating Direct3D infrastructure: code %lx\n", code);
         ExitProcess(EXIT_FAILURE);
     }
     fprintf(instanceLog, "Direct3D infrastructure established: code %lx\n", code);
+#endif
 
+#ifdef DEBUG
     fprintf(instanceLog, "Feature level available: %x\n", implementedFeatureLevel);
+#endif
     swapChain->lpVtbl->GetDesc(swapChain, &swapChainDescription);
+#ifdef DEBUG
     fprintf(instanceLog, "Buffer resolution: %u x %u\n", swapChainDescription.BufferDesc.Width, swapChainDescription.BufferDesc.Height);
     fprintf(instanceLog, "Buffer refresh rate: %u / %u\n", swapChainDescription.BufferDesc.RefreshRate.Numerator, swapChainDescription.BufferDesc.RefreshRate.Denominator);
+#endif
 
+#ifdef DEBUG
     // Get the debug log
     code = graphicsDevice->lpVtbl->QueryInterface(graphicsDevice, &IID_ID3D11InfoQueue, (LPVOID) &debugQueue);
     if (FAILED(code)) {
@@ -429,6 +439,7 @@ void InitD3D(HWND windowHandle, int width, int height, FILE* instanceLog) {
         ExitProcess(EXIT_FAILURE);
     }
     fprintf(instanceLog, "Debug queue acquired: code %lx\n", code);
+#endif
 
 
 
@@ -442,11 +453,13 @@ void InitD3D(HWND windowHandle, int width, int height, FILE* instanceLog) {
     ID3D11Texture2D *pBackBuffer;
     // WHATEVER-CAST
     code = swapChain->lpVtbl->GetBuffer(swapChain, 0, &IID_ID3D11Texture2D, (LPVOID*) &pBackBuffer);
+#ifdef DEBUG
     if (FAILED(code)) {
         fprintf(instanceLog, "Failed getting swapchain backbuffer: code %lx\n", code);
         ExitProcess(EXIT_FAILURE);
     }
     fprintf(instanceLog, "Acquired backbuffer: code %lx\n", code);
+#endif
 
     // use the back buffer address to create the render target
     rtvDesc = (D3D11_RENDER_TARGET_VIEW_DESC) {
@@ -456,11 +469,13 @@ void InitD3D(HWND windowHandle, int width, int height, FILE* instanceLog) {
     // MSDN: Creates a render-target view for accessing resource data
     // DOWNCAST
     code = graphicsDevice->lpVtbl->CreateRenderTargetView(graphicsDevice, (LPVOID) pBackBuffer, &rtvDesc, &renderTargetView);
+#ifdef DEBUG
     if (FAILED(code)) {
         fprintf(instanceLog, "Failed creating render target view: code %lx\n", code);
         ExitProcess(EXIT_FAILURE);
     }
     fprintf(instanceLog, "Render target view created: code %lx\n", code);
+#endif
     pBackBuffer->lpVtbl->Release(pBackBuffer);
 
 
@@ -479,11 +494,13 @@ void InitD3D(HWND windowHandle, int width, int height, FILE* instanceLog) {
         .BindFlags  = D3D11_BIND_DEPTH_STENCIL,
     };
     code = graphicsDevice->lpVtbl->CreateTexture2D(graphicsDevice, &depthStencilDesc, NULL, &depthStencilBuffer);
+#ifdef DEBUG
     if (FAILED(code)) {
         fprintf(instanceLog, "Failed creating depth stencil texture: code %lx\n", code);
         ExitProcess(EXIT_FAILURE);
     }
     fprintf(instanceLog, "Depth stencil texture created: code %lx\n", code);
+#endif
 
     // Take caution with the ViewDimension parameter, as it must correspond to the underlying buffer's characteristics
     dsvDesc = (D3D11_DEPTH_STENCIL_VIEW_DESC) {
@@ -492,11 +509,13 @@ void InitD3D(HWND windowHandle, int width, int height, FILE* instanceLog) {
     };
     // DOWNCAST
     code = graphicsDevice->lpVtbl->CreateDepthStencilView(graphicsDevice, (LPVOID) depthStencilBuffer, &dsvDesc, &depthStencilView);
+#ifdef DEBUG
     if (FAILED(code)) {
         fprintf(instanceLog, "Failed creating DS view: code %lx\n", code);
         ExitProcess(EXIT_FAILURE);
     }
     fprintf(instanceLog, "DS view created: code %lx\n", code);
+#endif
 
 
     // Finally, Bind the views together to the Output Merger stage
@@ -514,37 +533,27 @@ void InitD3D(HWND windowHandle, int width, int height, FILE* instanceLog) {
 
 
     //---------------------------------------------------------------
-    // Shader bytecode compilation
+    // Setting shader objects
 
-    // Take the HLSL sources for the vertex and pixel stages, compile them, and set them up in the pipeline
-    ID3D10Blob *vsBlob, *psBlob;
-    code = D3DCompileFromFile(VERTEX_SHADER_FILENAME, NULL, NULL, "VShader", "vs_5_0", 0, 0, &vsBlob, NULL);
-    if (FAILED(code)) {
-        fprintf(instanceLog, "Failed compiling vertex shader: code %lx\n", code);
-        ExitProcess(EXIT_FAILURE);
-    }
-    fprintf(instanceLog, "Vertex shader compiled: code %lx\n", code);
-    code = D3DCompileFromFile(PIXEL_SHADER_FILENAME, NULL, NULL, "PShader", "ps_5_0", 0, 0, &psBlob, NULL);
-    if (FAILED(code)) {
-        fprintf(instanceLog, "Failed compiling pixel shader: code %lx\n", code);
-        ExitProcess(EXIT_FAILURE);
-    }
-    fprintf(instanceLog, "Pixel shader compiled: code %lx\n", code);
     
-    code = graphicsDevice->lpVtbl->CreateVertexShader(graphicsDevice, vsBlob->lpVtbl->GetBufferPointer(vsBlob), vsBlob->lpVtbl->GetBufferSize(vsBlob), NULL, &vertexShader);
+    code = graphicsDevice->lpVtbl->CreateVertexShader(graphicsDevice, g_VShader, sizeof g_VShader, NULL, &vertexShader);
+#ifdef DEBUG
     if (FAILED(code)) {
         fprintf(instanceLog, "Failed creating vertex shader: code %lx\n", code);
         ExitProcess(EXIT_FAILURE);
     }
     fprintf(instanceLog, "Vertex shader created: code %lx\n", code);
-    code = graphicsDevice->lpVtbl->CreatePixelShader(graphicsDevice, psBlob->lpVtbl->GetBufferPointer(psBlob), psBlob->lpVtbl->GetBufferSize(psBlob), NULL, &pixelShader);
+#endif
+    graphicsPipeline->lpVtbl->VSSetShader(graphicsPipeline, vertexShader, NULL, 0);
+
+    code = graphicsDevice->lpVtbl->CreatePixelShader(graphicsDevice, g_PShader, sizeof g_PShader, NULL, &pixelShader);
+#ifdef DEBUG
     if (FAILED(code)) {
         fprintf(instanceLog, "Failed creating pixel shader: code %lx\n", code);
         ExitProcess(EXIT_FAILURE);
     }
     fprintf(instanceLog, "Pixel shader created: code %lx\n", code);
-    
-    graphicsPipeline->lpVtbl->VSSetShader(graphicsPipeline, vertexShader, NULL, 0);
+#endif
     graphicsPipeline->lpVtbl->PSSetShader(graphicsPipeline, pixelShader, NULL, 0);
 
 
@@ -567,11 +576,13 @@ void InitD3D(HWND windowHandle, int width, int height, FILE* instanceLog) {
         .AntialiasedLineEnable = TRUE
     };
     code = graphicsDevice->lpVtbl->CreateRasterizerState(graphicsDevice, &rasterizerDesc, &rasterizerState);
+#ifdef DEBUG
     if (FAILED(code)) {
         fprintf(instanceLog, "Failed setting rasterizer: code %lx\n", code);
         ExitProcess(EXIT_FAILURE);
     }
     fprintf(instanceLog, "Rasterizer set: code %lx\n", code);
+#endif
     graphicsPipeline->lpVtbl->RSSetState(graphicsPipeline, rasterizerState);
 
 
@@ -606,11 +617,13 @@ void InitD3D(HWND windowHandle, int width, int height, FILE* instanceLog) {
         .BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS,
     };
     code = graphicsDevice->lpVtbl->CreateDepthStencilState(graphicsDevice, &dsDesc, &depthStencilState);
+#ifdef DEBUG
     if (FAILED(code)) {
         fprintf(instanceLog, "Failed setting depth/stencil: code %lx\n", code);
         ExitProcess(EXIT_FAILURE);
     }
     fprintf(instanceLog, "Depth/stencil set: code %lx\n", code);
+#endif
     graphicsPipeline->lpVtbl->OMSetDepthStencilState(graphicsPipeline, depthStencilState, 1);
 
 
@@ -620,12 +633,14 @@ void InitD3D(HWND windowHandle, int width, int height, FILE* instanceLog) {
     // Input specification
 
     // Instruct the Input Assembly stage on how the vertex data is structured, and what kind of primitive is expected from it to draw
-    code = graphicsDevice->lpVtbl->CreateInputLayout(graphicsDevice, vertexInputSpec, 2, vsBlob->lpVtbl->GetBufferPointer(vsBlob), vsBlob->lpVtbl->GetBufferSize(vsBlob), &inputLayout);
+    code = graphicsDevice->lpVtbl->CreateInputLayout(graphicsDevice, vertexInputSpec, 2, g_VShader, sizeof g_VShader, &inputLayout);
+#ifdef DEBUG
     if (FAILED(code)) {
         fprintf(instanceLog, "Failed creating input layout: code %lx\n", code);
         ExitProcess(EXIT_FAILURE);
     }
     fprintf(instanceLog, "Input layout created: code %lx\n", code);
+#endif
     graphicsPipeline->lpVtbl->IASetInputLayout(graphicsPipeline, inputLayout);
 
     graphicsPipeline->lpVtbl->IASetPrimitiveTopology(graphicsPipeline, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -634,7 +649,7 @@ void InitD3D(HWND windowHandle, int width, int height, FILE* instanceLog) {
 
 
     //---------------------------------------------------------------
-    // Buffer creation
+    // Buffers
 
     // The common process:
     //
@@ -656,11 +671,13 @@ void InitD3D(HWND windowHandle, int width, int height, FILE* instanceLog) {
         .SysMemSlicePitch = 0,
     };
     code = graphicsDevice->lpVtbl->CreateBuffer(graphicsDevice, &vBufferSpec, &vInitData, &shapeBuffer);
+#ifdef DEBUG
     if (FAILED(code)) {
         fprintf(instanceLog, "Failed creating vertex buffer: code %lx\n", code);
         ExitProcess(EXIT_FAILURE);
     }
     fprintf(instanceLog, "Vertex buffer created: code %lx\n", code);
+#endif
     stride = sizeof (vertex);
     offset = 0;
     graphicsPipeline->lpVtbl->IASetVertexBuffers(graphicsPipeline, 0, 1, &shapeBuffer, &stride, &offset);
@@ -678,11 +695,13 @@ void InitD3D(HWND windowHandle, int width, int height, FILE* instanceLog) {
         .SysMemSlicePitch = 0,
     };
     code = graphicsDevice->lpVtbl->CreateBuffer(graphicsDevice, &iBufferDesc, &iInitData, &indexBuffer);
+#ifdef DEBUG
     if (FAILED(code)) {
         fprintf(instanceLog, "Failed creating index buffer: code %lx\n", code);
         ExitProcess(EXIT_FAILURE);
     }
     fprintf(instanceLog, "Index buffer created: code %lx\n", code);
+#endif
     graphicsPipeline->lpVtbl->IASetIndexBuffer(graphicsPipeline, indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
 
@@ -699,23 +718,27 @@ void InitD3D(HWND windowHandle, int width, int height, FILE* instanceLog) {
         .SysMemSlicePitch = 0,
     };
     code = graphicsDevice->lpVtbl->CreateBuffer(graphicsDevice, &cBufferDesc, &cInitData, &transformBuffer);
+#ifdef DEBUG
     if (FAILED(code)) {
         fprintf(instanceLog, "Failed creating transform buffer: code %lx\n", code);
         ExitProcess(EXIT_FAILURE);
     }
     fprintf(instanceLog, "Transform buffer created: code %lx\n", code);
+#endif
     graphicsPipeline->lpVtbl->VSSetConstantBuffers(graphicsPipeline, 0, 1, &transformBuffer);
 
 
 
+#ifdef DEBUG
     fprintf(instanceLog, "Init graphics done\n");
+#endif
 }
 
 
 
 
 // this is the function that releases the Direct3D COM objects
-void CleanD3D(char* logfilename) {
+void CleanD3D() {
 
     // Direct3D is actually incapable of closing when in fullscreen mode
     swapChain->lpVtbl->SetFullscreenState(swapChain, FALSE, NULL);
@@ -733,8 +756,9 @@ void CleanD3D(char* logfilename) {
     graphicsPipeline->lpVtbl->Release(graphicsPipeline);
     graphicsDevice->lpVtbl->Release(graphicsDevice);
 
-    if (logfilename != NULL) {
-        FILE* devLog = fopen(logfilename, "w");
+#ifdef DEBUG
+    if (LOG_D3D_FILENAME != NULL) {
+        FILE* devLog = fopen(LOG_D3D_FILENAME, "w");
         setvbuf(devLog, NULL, _IONBF, 0);
         SYSTEMTIME st2;
         GetLocalTime(&st2);
@@ -755,6 +779,7 @@ void CleanD3D(char* logfilename) {
 
         fclose(devLog);
     }
+#endif
 }
 
 
@@ -762,7 +787,7 @@ void CleanD3D(char* logfilename) {
 
 float angle = 0;
 void applyRotation(void) {
-    angle += 0.001f;
+    angle += 0.007f;
     if (angle >= M_PI * 2) angle = 0;
 
     transforms.rotateMatrix[1][1] = cosf(angle);
@@ -775,7 +800,7 @@ void applyRotation(void) {
 
 
 // this is the function used to render a single frame
-void RenderFrame(void) {
+void CALLBACK RenderFrame() {
 
     // animate the shape!
     applyRotation();

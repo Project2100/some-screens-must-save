@@ -92,3 +92,7 @@ $RECYCLE.BIN/
 
 # Ignoring VSCode configs, they aren't necessary
 .vscode/**
+
+# Ignoring fxc-generated headers
+pixel.h
+vertex.h

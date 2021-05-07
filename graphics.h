@@ -6,12 +6,11 @@
 #define UNICODE
 
 #include <windows.h>
-#include <stdio.h>
 
-void InitD3D(HWND hWnd, int width, int height, FILE* log);
+void InitD3D(HWND hWnd, int width, int height);
 
 void resizeD3D(int width, int height);
 
 void RenderFrame();
 
-void CleanD3D(char* logFilename);
+void CleanD3D();

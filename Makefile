@@ -1,16 +1,29 @@
-.PHONY: all run clean
+.PHONY: debug release run clean
 
-all: resource.res graphics.obj
+
+debug: resource.res vertex.h pixel.h
+	cl /nologo /W3 /std:c17 /c debug.c
+	cl /DDEBUG /nologo /W3 /std:c17 /c graphics.c
+	cl /DDEBUG /nologo /W3 /std:c17 /Fe:ssms.scr resource.res main.c graphics.obj debug.obj
+
+release: resource.res vertex.h pixel.h
+	cl /nologo /W3 /std:c17 /c graphics.c
 	cl /nologo /W3 /std:c17 /Fe:ssms.scr resource.res main.c graphics.obj
 
 run:
 	ssms.scr /s
 
 clean:
-	rm -f ssms.scr *.res *.obj *.pdb *.log
+	rm -f ssms.scr *.res *.obj *.pdb *.log vertex.h pixel.h
 
 resource.res: resource.rc
 	rc /nologo resource.rc
 
-.c.obj:
-	cl /nologo /W3 /std:c17 /c $<
+# .c.obj:
+# 	cl /DDEBUG /nologo /W3 /std:c17 /c $<
+
+vertex.h: vertex.hlsl
+	fxc /T:vs_5_0 /Fh:vertex.h /E:VShader /nologo vertex.hlsl
+	
+pixel.h: pixel.hlsl
+	fxc /T:ps_5_0 /Fh:pixel.h /E:PShader /nologo pixel.hlsl
