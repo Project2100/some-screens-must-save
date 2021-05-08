@@ -50,7 +50,7 @@ LRESULT WINAPI ScreenSaverProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
         // Get configuration from registry
         // GetConfig();
         // Set a timer for the screen saver window using the redraw rate stored in Regedit.ini
-        uTimer = SetTimer(hWnd, 1, 6, NULL); 
+        uTimer = SetTimer(hWnd, 1, 13, NULL); 
         // Get window info, and start the engines
         CREATESTRUCT* wInfo = (CREATESTRUCT*) lParam;
         InitD3D(hWnd, wInfo->cx, wInfo->cy);

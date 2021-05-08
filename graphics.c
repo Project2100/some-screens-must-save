@@ -800,7 +800,7 @@ void applyRotation(void) {
 
 
 // this is the function used to render a single frame
-void CALLBACK RenderFrame() {
+void RenderFrame() {
 
     // animate the shape!
     applyRotation();
