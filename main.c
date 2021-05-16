@@ -50,16 +50,11 @@ LRESULT WINAPI ScreenSaverProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
         // Get configuration from registry
         // GetConfig();
         // Set a timer for the screen saver window using the redraw rate stored in Regedit.ini
-        uTimer = SetTimer(hWnd, 1, 13, NULL); 
+        uTimer = SetTimer(hWnd, 1, 13, RenderFrame); 
         // Get window info, and start the engines
         CREATESTRUCT* wInfo = (CREATESTRUCT*) lParam;
         InitD3D(hWnd, wInfo->cx, wInfo->cy);
         break;
-
-
-    case WM_TIMER: 
-        RenderFrame();
-        return 0;
 
 
     case WM_SIZE:
@@ -83,7 +78,8 @@ LRESULT WINAPI ScreenSaverProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 #endif
         break;
 
-    } 
+        
+    }
 
     return DefScreenSaverProc(hWnd, message, wParam, lParam);
 
@@ -123,11 +119,11 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, L
 
         case IDOK:
             // WriteConfig(hDlg);      //get info from controls
-            EndDialog( hDlg, LOWORD( wParam ) == IDOK ); 
+            EndDialog(hDlg, LOWORD(wParam) == IDOK); 
             return TRUE; 
 
         case IDCANCEL: 
-            EndDialog( hDlg, LOWORD( wParam ) == IDOK ); 
+            EndDialog(hDlg, LOWORD(wParam) == IDOK); 
             return TRUE;   
         }
     }

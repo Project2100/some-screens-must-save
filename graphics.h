@@ -7,10 +7,10 @@
 
 #include <windows.h>
 
-void InitD3D(HWND hWnd, int width, int height);
+void InitD3D(HWND window, int width, int height);
 
 void resizeD3D(int width, int height);
 
-void RenderFrame();
+void CALLBACK RenderFrame(HWND window, UINT message, UINT_PTR timerID, DWORD currentTime);
 
 void CleanD3D();

@@ -85,168 +85,12 @@ D3D11_INPUT_ELEMENT_DESC vertexInputSpec[2] = {
     }
 };
 
+#include "mengerL1.h"
+#include "mengerL2.h"
 
 
-// The shape vertices themselves, and their indices; buckle up...
-vertex shape[] = {
-    { 0.4f,  0.4f, -0.4f, {0.3f, 0.3f, 0.3f, 1.0f}},
-    { 0.4f, -0.4f, -0.4f, {0.3f, 0.3f, 0.3f, 1.0f}},
-    {-0.4f,  0.4f, -0.4f, {0.3f, 0.3f, 0.3f, 1.0f}},
-    {-0.4f, -0.4f, -0.4f, {0.3f, 0.3f, 0.3f, 1.0f}},
-    { 0.4f,  0.4f,  0.4f, {0.3f, 0.3f, 0.3f, 1.0f}},
-    { 0.4f, -0.4f,  0.4f, {0.3f, 0.3f, 0.3f, 1.0f}},
-    {-0.4f,  0.4f,  0.4f, {0.3f, 0.3f, 0.3f, 1.0f}},
-    {-0.4f, -0.4f,  0.4f, {0.3f, 0.3f, 0.3f, 1.0f}},
-
-    { 0.4f,  0.4f/3, -0.4f/3, {0.5f, 0.5f, 0.0f, 1.0f}},
-    { 0.4f, -0.4f/3, -0.4f/3, {0.5f, 0.5f, 0.0f, 1.0f}},
-    {-0.4f,  0.4f/3, -0.4f/3, {0.5f, 0.5f, 0.0f, 1.0f}},
-    {-0.4f, -0.4f/3, -0.4f/3, {0.5f, 0.5f, 0.0f, 1.0f}},
-    { 0.4f,  0.4f/3,  0.4f/3, {0.5f, 0.5f, 0.0f, 1.0f}},
-    { 0.4f, -0.4f/3,  0.4f/3, {0.5f, 0.5f, 0.0f, 1.0f}},
-    {-0.4f,  0.4f/3,  0.4f/3, {0.5f, 0.5f, 0.0f, 1.0f}},
-    {-0.4f, -0.4f/3,  0.4f/3, {0.5f, 0.5f, 0.0f, 1.0f}},
-
-    { 0.4f/3,  0.4f, -0.4f/3, {0.5f, 0.0f, 0.5f, 1.0f}},
-    { 0.4f/3, -0.4f, -0.4f/3, {0.5f, 0.0f, 0.5f, 1.0f}},
-    {-0.4f/3,  0.4f, -0.4f/3, {0.5f, 0.0f, 0.5f, 1.0f}},
-    {-0.4f/3, -0.4f, -0.4f/3, {0.5f, 0.0f, 0.5f, 1.0f}},
-    { 0.4f/3,  0.4f,  0.4f/3, {0.5f, 0.0f, 0.5f, 1.0f}},
-    { 0.4f/3, -0.4f,  0.4f/3, {0.5f, 0.0f, 0.5f, 1.0f}},
-    {-0.4f/3,  0.4f,  0.4f/3, {0.5f, 0.0f, 0.5f, 1.0f}},
-    {-0.4f/3, -0.4f,  0.4f/3, {0.5f, 0.0f, 0.5f, 1.0f}},
-
-    { 0.4f/3,  0.4f/3, -0.4f, {0.0f, 0.5f, 0.5f, 1.0f}},
-    { 0.4f/3, -0.4f/3, -0.4f, {0.0f, 0.5f, 0.5f, 1.0f}},
-    {-0.4f/3,  0.4f/3, -0.4f, {0.0f, 0.5f, 0.5f, 1.0f}},
-    {-0.4f/3, -0.4f/3, -0.4f, {0.0f, 0.5f, 0.5f, 1.0f}},
-    { 0.4f/3,  0.4f/3,  0.4f, {0.0f, 0.5f, 0.5f, 1.0f}},
-    { 0.4f/3, -0.4f/3,  0.4f, {0.0f, 0.5f, 0.5f, 1.0f}},
-    {-0.4f/3,  0.4f/3,  0.4f, {0.0f, 0.5f, 0.5f, 1.0f}},
-    {-0.4f/3, -0.4f/3,  0.4f, {0.0f, 0.5f, 0.5f, 1.0f}},
-
-    { 0.4f/3,  0.4f/3, -0.4f/3, {1.0f, 1.0f, 1.0f, 1.0f}},
-    { 0.4f/3, -0.4f/3, -0.4f/3, {1.0f, 1.0f, 1.0f, 1.0f}},
-    {-0.4f/3,  0.4f/3, -0.4f/3, {1.0f, 1.0f, 1.0f, 1.0f}},
-    {-0.4f/3, -0.4f/3, -0.4f/3, {1.0f, 1.0f, 1.0f, 1.0f}},
-    { 0.4f/3,  0.4f/3,  0.4f/3, {1.0f, 1.0f, 1.0f, 1.0f}},
-    { 0.4f/3, -0.4f/3,  0.4f/3, {1.0f, 1.0f, 1.0f, 1.0f}},
-    {-0.4f/3,  0.4f/3,  0.4f/3, {1.0f, 1.0f, 1.0f, 1.0f}},
-    {-0.4f/3, -0.4f/3,  0.4f/3, {1.0f, 1.0f, 1.0f, 1.0f}},
-};
-
-unsigned int indices[] = {
-
-    24, 25, 32,
-    25, 33, 32,
-    25, 27, 33,
-    27, 35, 33,
-    27, 26, 35,
-    26, 34, 35,
-    26, 24, 34,
-    24, 32, 34,
-
-    30, 31, 38,
-    31, 39, 38,
-    31, 29, 39,
-    29, 37, 39,
-    29, 28, 37,
-    28, 36, 37,
-    28, 30, 36,
-    30, 38, 36,
-
-    12, 13, 36,
-    13, 37, 36,
-    13, 9, 37,
-    9, 33, 37,
-    9, 8, 33,
-    8, 32, 33,
-    8, 12, 32,
-    12, 36, 32,
-
-    10, 11, 34,
-    11, 35, 34,
-    11, 15, 35,
-    15, 39, 35,
-    15, 14, 39,
-    14, 38, 39,
-    14, 10, 38,
-    10, 34, 38,
-
-    20, 16, 36,
-    16, 32, 36,
-    16, 18, 32,
-    18, 34, 32,
-    18, 22, 34,
-    22, 38, 34,
-    22, 20, 38,
-    20, 36, 38,
-
-    17, 21, 33,
-    21, 37, 33,
-    21, 23, 37,
-    23, 39, 37,
-    23, 19, 39,
-    19, 35, 39,
-    19, 17, 35,
-    17, 33, 35,
-
-
-    0, 1, 24,
-    0, 24, 26,
-    2, 0, 26, 
-    2, 26, 27, 
-    3, 2, 27, 
-    3, 27, 25, 
-    1, 3, 25, 
-    1, 25, 24,
-
-    6, 7, 30,
-    6, 30, 28,
-    4, 6, 28,
-    4, 28, 29,
-    5, 4, 29,
-    5, 29, 31,
-    7, 5, 31,
-    7, 31, 30,
-
-    4, 5, 12,
-    4, 12, 8,
-    0, 4, 8,
-    0, 8, 9,
-    1, 0, 9,
-    1, 9, 13,
-    5, 1, 13,
-    5, 13, 12,
-
-    2, 3, 10,
-    2, 10, 14,
-    6, 2, 14,
-    6, 14, 15,
-    7, 6, 15,
-    7, 15, 11,
-    3, 7, 11,
-    3, 11, 10,
-
-    4, 0, 20,
-    4, 20, 22,
-    6, 4, 22,
-    6, 22, 18,
-    2, 6, 18,
-    2, 18, 16,
-    0, 2, 16,
-    0, 16, 20,
-
-    1, 5, 17,
-    1, 17, 19,
-    3, 1, 19,
-    3, 19, 23,
-    7, 3, 23,
-    7, 23, 21,
-    5, 7, 21,
-    5, 21, 17,
-
-};
+#define SHAPE_VTCS mengerL2_vtcs
+#define SHAPE_IDCS mengerL2_idcs
 
 
 // The world transforms struct, and the transforms
@@ -661,12 +505,12 @@ void InitD3D(HWND windowHandle, int width, int height) {
 
     // VERTICES
     vBufferSpec = (D3D11_BUFFER_DESC) {
-        .ByteWidth      = sizeof shape,             // The byte size of the vertex buffer
+        .ByteWidth      = sizeof SHAPE_VTCS,             // The byte size of the vertex buffer
         .BindFlags      = D3D11_BIND_VERTEX_BUFFER, // use as a vertex buffer
         .Usage          = D3D11_USAGE_DEFAULT,
     };
     vInitData = (D3D11_SUBRESOURCE_DATA) {
-        .pSysMem = shape,
+        .pSysMem = SHAPE_VTCS,
         .SysMemPitch = 0,
         .SysMemSlicePitch = 0,
     };
@@ -685,12 +529,12 @@ void InitD3D(HWND windowHandle, int width, int height) {
     
     // INDICES
     iBufferDesc = (D3D11_BUFFER_DESC) {
-        .ByteWidth       = sizeof indices,
+        .ByteWidth       = sizeof SHAPE_IDCS,
         .BindFlags       = D3D11_BIND_INDEX_BUFFER,
         .Usage           = D3D11_USAGE_DEFAULT,
     };
     iInitData = (D3D11_SUBRESOURCE_DATA) {
-        .pSysMem = indices,
+        .pSysMem = SHAPE_IDCS,
         .SysMemPitch = 0,
         .SysMemSlicePitch = 0,
     };
@@ -788,7 +632,7 @@ void CleanD3D() {
 float angle = 0;
 void applyRotation(void) {
     angle += 0.007f;
-    if (angle >= M_PI * 2) angle = 0;
+    if (angle >= M_PI * 2) angle -= (float) M_PI * 2;
 
     transforms.rotateMatrix[1][1] = cosf(angle);
     transforms.rotateMatrix[1][2] = -sinf(angle);
@@ -800,7 +644,7 @@ void applyRotation(void) {
 
 
 // this is the function used to render a single frame
-void RenderFrame() {
+void CALLBACK RenderFrame(HWND window, UINT a, UINT_PTR b, DWORD c) {
 
     // animate the shape!
     applyRotation();
@@ -821,7 +665,7 @@ void RenderFrame() {
 
 
     // draw the vertex buffer to the back buffer
-    graphicsPipeline->lpVtbl->DrawIndexed(graphicsPipeline, sizeof indices / sizeof (unsigned int), 0, 0);
+    graphicsPipeline->lpVtbl->DrawIndexed(graphicsPipeline, sizeof SHAPE_IDCS / sizeof (unsigned int), 0, 0);
 
     // switch the back buffer and the front buffer
     // MSDN: Presents a rendered image to the user.
