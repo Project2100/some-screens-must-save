@@ -22,6 +22,9 @@
 #pragma comment(lib, "ScrnSavW.lib")
 #pragma comment(linker, "/subsystem:windows")
 
+#include "controls.h"
+
+#define REG_SCR_ROOT_PATH TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Screensavers\\SomeScreensMustSave")
 
 
 // RATIONALE: The window is set to fullscreen at native resolution, and the viewport is set as square. Hence, viewport size is bound by the smallest dimension
@@ -44,13 +47,15 @@ LRESULT WINAPI ScreenSaverProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 #endif
         // AP210501: Need to study these more
         // TODO: Add error checking to verify LoadString success for both calls
-        // Retrieve the application name from the .rc file, and the .ini (or registry) file name
+        // Retrieve the application name from the .rc file
         LoadString(hMainInstance, idsAppName, szAppName, sizeof szAppName);
-        LoadString(hMainInstance, idsIniFile, szIniFile, sizeof szIniFile);
+
         // Get configuration from registry
         // GetConfig();
+
         // Set a timer for the screen saver window using the redraw rate stored in Regedit.ini
-        uTimer = SetTimer(hWnd, 1, 13, RenderFrame); 
+        uTimer = SetTimer(hWnd, 1, 13, RenderFrame);
+
         // Get window info, and start the engines
         CREATESTRUCT* wInfo = (CREATESTRUCT*) lParam;
         InitD3D(hWnd, wInfo->cx, wInfo->cy);
@@ -64,7 +69,7 @@ LRESULT WINAPI ScreenSaverProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 #endif
         resizeD3D(width, height);
         break;
- 
+
 
     case WM_DESTROY: 
 #ifdef DEBUG
@@ -78,7 +83,6 @@ LRESULT WINAPI ScreenSaverProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 #endif
         break;
 
-        
     }
 
     return DefScreenSaverProc(hWnd, message, wParam, lParam);
@@ -86,49 +90,80 @@ LRESULT WINAPI ScreenSaverProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 }
 
 
-
+// NOTE: when invoking ssms /c, the exit code will be the one given to th EndDialog function
+HKEY rootKey = NULL;
+DWORD regTypeSpongeLevel;
+DWORD spongeLevel;
+DWORD slSize = sizeof spongeLevel;
 
 BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
     (void) lParam;
 
     // would need this for slider bars or other common controls
-    InitCommonControls();
-
-    // HWND aCheck;
+    //InitCommonControlsEx();
 
     switch (message) {
 
     case WM_INITDIALOG:
-        LoadString(hMainInstance, IDS_DESCRIPTION, szAppName, APPNAMEBUFFERLEN);
 
-        // GetConfig();
+        LoadString(hMainInstance, idsAppName, szAppName, sizeof szAppName);
 
-        // aCheck = GetDlgItem( hDlg, IDC_TUMBLE );
-        // SendMessage( aCheck, BM_SETCHECK, bTumble ? BST_CHECKED : BST_UNCHECKED, 0 );
+        // Open (or create) the screensaver's registry key
+        RegCreateKeyEx(HKEY_CURRENT_USER, REG_SCR_ROOT_PATH, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &rootKey, NULL);
+
+        // Read the sponge level from the registry, defaults to 1
+        // DOWNCAST
+        switch (RegQueryValueEx(rootKey, REGNAME_SPONGE_LEVEL, NULL, &regTypeSpongeLevel, (LPVOID) &spongeLevel, &slSize)) {
+        case ERROR_SUCCESS:
+            if (regTypeSpongeLevel != REG_DWORD || spongeLevel < 1 || spongeLevel > 2) {
+                spongeLevel = 1;
+            }
+            break;
+        case ERROR_FILE_NOT_FOUND:
+            spongeLevel = 1;
+            break;
+        case ERROR_MORE_DATA:
+        default:
+            MessageBox(hDlg, TEXT("Error reading registry"), TEXT("Registry error"), MB_OK);
+            return TRUE;
+        }
+
+        // Set the dialog with the current seting
+        switch (spongeLevel) {
+        case 1:
+            CheckRadioButton(hDlg, CTRL_SPONGE_LEVEL_1, CTRL_SPONGE_LEVEL_2, CTRL_SPONGE_LEVEL_1);
+            break;
+        case 2:
+            CheckRadioButton(hDlg, CTRL_SPONGE_LEVEL_1, CTRL_SPONGE_LEVEL_2, CTRL_SPONGE_LEVEL_2);
+            break;
+        }
 
         return TRUE;
 
+
     case WM_COMMAND:
-        switch (LOWORD(wParam)) { 
 
-        // case IDC_TUMBLE:
-        //     bTumble = (IsDlgButtonChecked( hDlg, IDC_TUMBLE ) == BST_CHECKED);
-        //     return TRUE;
-
-        //     //cases for other controls would go here
-
+        switch (LOWORD(wParam)) {
+        case CTRL_SPONGE_LEVEL_1:
+            spongeLevel = 1;
+            return TRUE;
+        case CTRL_SPONGE_LEVEL_2:
+            spongeLevel = 2;
+            return TRUE;
         case IDOK:
-            // WriteConfig(hDlg);      //get info from controls
-            EndDialog(hDlg, LOWORD(wParam) == IDOK); 
-            return TRUE; 
-
-        case IDCANCEL: 
-            EndDialog(hDlg, LOWORD(wParam) == IDOK); 
-            return TRUE;   
+            RegSetValueEx(rootKey, REGNAME_SPONGE_LEVEL, 0, REG_DWORD, (LPVOID) &spongeLevel, sizeof spongeLevel);
+        case IDCANCEL:
+            EndDialog(hDlg, LOWORD(wParam) == IDOK);
+            RegCloseKey(rootKey);
+            return TRUE;
         }
+
+        return FALSE;
+
+
     }
     
-    return FALSE; 
+    return FALSE;
 }
 
 

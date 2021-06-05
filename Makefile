@@ -13,11 +13,14 @@ release: resource.res vertex.h pixel.h
 run:
 	ssms.scr /s
 
+config:
+	ssms.scr /c
+
 clean:
 	rm -f ssms.scr *.res *.obj *.pdb *.log vertex.h pixel.h
 
-resource.res: resource.rc
-	rc /nologo resource.rc
+resource.res: resource.rc controls.h
+	rc /nologo /n resource.rc
 
 # .c.obj:
 # 	cl /DDEBUG /nologo /W3 /std:c17 /c $<
