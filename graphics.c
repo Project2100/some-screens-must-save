@@ -88,9 +88,32 @@ D3D11_INPUT_ELEMENT_DESC vertexInputSpec[2] = {
 #include "mengerL1.h"
 #include "mengerL2.h"
 
+struct shape_impl {
+    vertex* vertices;
+    unsigned int* indices;
+    size_t vertexSize;
+    size_t indexSize;
+    size_t indexCount;
+};
 
-#define SHAPE_VTCS mengerL2_vtcs
-#define SHAPE_IDCS mengerL2_idcs
+shape mengerL1 = {
+    .vertices = mengerL1_vtcs,
+    .indices = mengerL1_idcs,
+    .vertexSize = sizeof mengerL1_vtcs,
+    .indexSize = sizeof mengerL1_idcs,
+    .indexCount = sizeof mengerL1_idcs / sizeof (unsigned int),
+};
+
+shape mengerL2 = {
+    .vertices = mengerL2_vtcs,
+    .indices = mengerL2_idcs,
+    .vertexSize = sizeof mengerL2_vtcs,
+    .indexSize = sizeof mengerL2_idcs,
+    .indexCount = sizeof mengerL2_idcs / sizeof (unsigned int),
+};
+
+
+shape* currentShape;
 
 
 // The world transforms struct, and the transforms
@@ -505,12 +528,12 @@ void InitD3D(HWND windowHandle, int width, int height) {
 
     // VERTICES
     vBufferSpec = (D3D11_BUFFER_DESC) {
-        .ByteWidth      = sizeof SHAPE_VTCS,             // The byte size of the vertex buffer
+        .ByteWidth      = currentShape->vertexSize,             // The byte size of the vertex buffer
         .BindFlags      = D3D11_BIND_VERTEX_BUFFER, // use as a vertex buffer
         .Usage          = D3D11_USAGE_DEFAULT,
     };
     vInitData = (D3D11_SUBRESOURCE_DATA) {
-        .pSysMem = SHAPE_VTCS,
+        .pSysMem = currentShape->vertices,
         .SysMemPitch = 0,
         .SysMemSlicePitch = 0,
     };
@@ -529,12 +552,12 @@ void InitD3D(HWND windowHandle, int width, int height) {
     
     // INDICES
     iBufferDesc = (D3D11_BUFFER_DESC) {
-        .ByteWidth       = sizeof SHAPE_IDCS,
+        .ByteWidth       = currentShape->indexSize,
         .BindFlags       = D3D11_BIND_INDEX_BUFFER,
         .Usage           = D3D11_USAGE_DEFAULT,
     };
     iInitData = (D3D11_SUBRESOURCE_DATA) {
-        .pSysMem = SHAPE_IDCS,
+        .pSysMem = currentShape->indices,
         .SysMemPitch = 0,
         .SysMemSlicePitch = 0,
     };
@@ -665,7 +688,7 @@ void CALLBACK RenderFrame(HWND window, UINT a, UINT_PTR b, DWORD c) {
 
 
     // draw the vertex buffer to the back buffer
-    graphicsPipeline->lpVtbl->DrawIndexed(graphicsPipeline, sizeof SHAPE_IDCS / sizeof (unsigned int), 0, 0);
+    graphicsPipeline->lpVtbl->DrawIndexed(graphicsPipeline, currentShape->indexCount, 0, 0);
 
     // switch the back buffer and the front buffer
     // MSDN: Presents a rendered image to the user.

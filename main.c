@@ -24,7 +24,39 @@
 
 #include "controls.h"
 
+
 #define REG_SCR_ROOT_PATH TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Screensavers\\SomeScreensMustSave")
+
+HKEY rootKey = NULL;
+DWORD regTypeSpongeLevel;
+DWORD spongeLevel;
+DWORD slSize = sizeof spongeLevel;
+
+
+
+
+void GetScrConfig() {
+    // Open (or create) the screensaver's registry key
+    RegCreateKeyEx(HKEY_CURRENT_USER, REG_SCR_ROOT_PATH, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &rootKey, NULL);
+
+    // Read the sponge level from the registry, defaults to 1
+    // DOWNCAST
+    switch (RegQueryValueEx(rootKey, REGNAME_SPONGE_LEVEL, NULL, &regTypeSpongeLevel, (LPVOID) &spongeLevel, &slSize)) {
+    case ERROR_SUCCESS:
+        if (regTypeSpongeLevel != REG_DWORD || spongeLevel < 1 || spongeLevel > 2) {
+            spongeLevel = 1;
+        }
+        break;
+    case ERROR_FILE_NOT_FOUND:
+    case ERROR_MORE_DATA:
+    default:
+        // Some error occurred, and we don't care
+        spongeLevel = 1;
+        break;
+    }
+}
+
+
 
 
 // RATIONALE: The window is set to fullscreen at native resolution, and the viewport is set as square. Hence, viewport size is bound by the smallest dimension
@@ -51,14 +83,27 @@ LRESULT WINAPI ScreenSaverProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
         LoadString(hMainInstance, idsAppName, szAppName, sizeof szAppName);
 
         // Get configuration from registry
-        // GetConfig();
+        GetScrConfig();
 
-        // Set a timer for the screen saver window using the redraw rate stored in Regedit.ini
-        uTimer = SetTimer(hWnd, 1, 13, RenderFrame);
+#ifdef DEBUG
+        fprintf(instanceLog, "Sponge level: %lu\n", spongeLevel);
+#endif
+        
+        switch (spongeLevel) {
+        case 1:
+            currentShape = &mengerL1;
+            break;
+        case 2:
+            currentShape = &mengerL2;
+            break;
+        }
 
         // Get window info, and start the engines
         CREATESTRUCT* wInfo = (CREATESTRUCT*) lParam;
         InitD3D(hWnd, wInfo->cx, wInfo->cy);
+        
+        // Set a timer for the screen saver window using the redraw rate stored in Regedit.ini
+        uTimer = SetTimer(hWnd, 1, 13, RenderFrame);
         break;
 
 
@@ -90,12 +135,9 @@ LRESULT WINAPI ScreenSaverProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 }
 
 
-// NOTE: when invoking ssms /c, the exit code will be the one given to th EndDialog function
-HKEY rootKey = NULL;
-DWORD regTypeSpongeLevel;
-DWORD spongeLevel;
-DWORD slSize = sizeof spongeLevel;
 
+
+// NOTE: when invoking ssms /c, the exit code will be the one given to th EndDialog function
 BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
     (void) lParam;
 
@@ -107,27 +149,8 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, L
     case WM_INITDIALOG:
 
         LoadString(hMainInstance, idsAppName, szAppName, sizeof szAppName);
-
-        // Open (or create) the screensaver's registry key
-        RegCreateKeyEx(HKEY_CURRENT_USER, REG_SCR_ROOT_PATH, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &rootKey, NULL);
-
-        // Read the sponge level from the registry, defaults to 1
-        // DOWNCAST
-        switch (RegQueryValueEx(rootKey, REGNAME_SPONGE_LEVEL, NULL, &regTypeSpongeLevel, (LPVOID) &spongeLevel, &slSize)) {
-        case ERROR_SUCCESS:
-            if (regTypeSpongeLevel != REG_DWORD || spongeLevel < 1 || spongeLevel > 2) {
-                spongeLevel = 1;
-            }
-            break;
-        case ERROR_FILE_NOT_FOUND:
-            spongeLevel = 1;
-            break;
-        case ERROR_MORE_DATA:
-        default:
-            MessageBox(hDlg, TEXT("Error reading registry"), TEXT("Registry error"), MB_OK);
-            return TRUE;
-        }
-
+        GetScrConfig();
+        
         // Set the dialog with the current seting
         switch (spongeLevel) {
         case 1:
@@ -137,7 +160,7 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, L
             CheckRadioButton(hDlg, CTRL_SPONGE_LEVEL_1, CTRL_SPONGE_LEVEL_2, CTRL_SPONGE_LEVEL_2);
             break;
         }
-
+        
         return TRUE;
 
 
