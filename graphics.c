@@ -91,9 +91,9 @@ D3D11_INPUT_ELEMENT_DESC vertexInputSpec[2] = {
 struct shape_impl {
     vertex* vertices;
     unsigned int* indices;
-    size_t vertexSize;
-    size_t indexSize;
-    size_t indexCount;
+    UINT vertexSize;
+    UINT indexSize;
+    UINT indexCount;
 };
 
 shape mengerL1 = {
