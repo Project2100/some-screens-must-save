@@ -13,7 +13,7 @@ extern shape mengerL1;
 extern shape mengerL2;
 extern shape* currentShape;
 
-void InitD3D(HWND window, int width, int height);
+void InitD3D(HWND window);
 
 void resizeD3D(int width, int height);
 

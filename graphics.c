@@ -214,7 +214,7 @@ void squareViewport(int screenWidth, int screenHeight) {
 
 
 // The whole process of firing up DirectX
-void InitD3D(HWND windowHandle, int width, int height) {
+void InitD3D(HWND windowHandle) {
 
     
     // Initialize the orientation matrix
@@ -223,11 +223,9 @@ void InitD3D(HWND windowHandle, int width, int height) {
     transforms.orientMatrix[1][0] = sinf((FLOAT) M_PI_4);
     transforms.orientMatrix[1][1] = cosf((FLOAT) M_PI_4);
 
-    int fsWidth = GetSystemMetrics(SM_CXFULLSCREEN);
-    int fsHeight = GetSystemMetrics(SM_CYFULLSCREEN);
-
-
-
+    // Set the screensaver only on the primary screen; these are the metrics to use
+    int fsWidth = GetSystemMetrics(SM_CXSCREEN);
+    int fsHeight = GetSystemMetrics(SM_CYSCREEN);
 
     // This is the value that gets constantly checked for potential problems, almost always used by invocations from graphicsDevice
     HRESULT code;
@@ -250,13 +248,12 @@ void InitD3D(HWND windowHandle, int width, int height) {
                                                     // If you create a swap chain with one buffer, specifying DXGI_SWAP_EFFECT_SEQUENTIAL does not cause the contents of the single buffer to be swapped with the front buffer.
                                                     // When you call IDXGIFactory::CreateSwapChain to create a full-screen swap chain, you typically include the front buffer in this value.
         .BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM,    // describes the backbuffer display mode: use 32-bit color
-        .BufferDesc.Width = width,
-        .BufferDesc.Height = height,
+        .BufferDesc.Width = fsWidth,
+        .BufferDesc.Height = fsHeight,
         .BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,     // how swap chain is to be used
-        .OutputWindow = windowHandle,                       // the application window to be used
+        .OutputWindow = windowHandle,
         .SampleDesc = msDesc,
-        // .Windowed = FALSE,                                  // start windowed or fullscreen
-        .Windowed = (width == fsWidth && height == fsHeight) ? FALSE : TRUE,
+        .Windowed = FALSE,
         .SwapEffect = DXGI_SWAP_EFFECT_DISCARD,             // Options for handling pixels in a display surface after calling IDXGISwapChain.present(...)
     };
 

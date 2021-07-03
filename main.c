@@ -99,21 +99,38 @@ LRESULT WINAPI ScreenSaverProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
         }
 
         // Get window info, and start the engines
-        CREATESTRUCT* wInfo = (CREATESTRUCT*) lParam;
-        InitD3D(hWnd, wInfo->cx, wInfo->cy);
+        //CREATESTRUCT* wInfo = (CREATESTRUCT*) lParam;
+
+        // int fsWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+        // int fsHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+
+        HDC hdc = GetDC(hWnd);
+        RECT rc = (RECT) {
+            .bottom = GetSystemMetrics(SM_CYVIRTUALSCREEN),
+            .left = GetSystemMetrics(SM_XVIRTUALSCREEN),
+            .right = GetSystemMetrics(SM_CXVIRTUALSCREEN),
+            .top = GetSystemMetrics(SM_YVIRTUALSCREEN),
+        };
+        // GetClientRect (hWnd, &rc); 
+        FillRect (hdc, &rc, GetStockObject(BLACK_BRUSH)); 
+        ReleaseDC(hWnd, hdc); 
+
+
+
+        InitD3D(hWnd);
         
         // Set a timer for the screen saver window using the redraw rate stored in Regedit.ini
         uTimer = SetTimer(hWnd, 1, 13, RenderFrame);
         break;
 
-
-    case WM_SIZE:
-        int width = LOWORD(lParam), height = HIWORD(lParam);
-#ifdef DEBUG
-        fprintf(instanceLog, "Resizing to %d x %d\n", width, height);
-#endif
-        resizeD3D(width, height);
-        break;
+    // Not handling SIZE messages, assuming window size remains unchanged (i.e. fullscreen on primary)
+//     case WM_SIZE:
+//         int width = LOWORD(lParam), height = HIWORD(lParam);
+// #ifdef DEBUG
+//         fprintf(instanceLog, "Resizing to %d x %d\n", width, height);
+// #endif
+//         resizeD3D(width, height);
+//         break;
 
 
     case WM_DESTROY: 
