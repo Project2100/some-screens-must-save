@@ -98,6 +98,9 @@ LRESULT WINAPI ScreenSaverProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
             break;
         }
 
+        buildShape();
+        currentShape = &mengerL0;
+
         // Get window info, and start the engines
         CREATESTRUCT* wInfo = (CREATESTRUCT*) lParam;
         InitD3D(hWnd, wInfo->cx, wInfo->cy);

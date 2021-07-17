@@ -9,6 +9,7 @@
 
 typedef struct shape_impl shape;
 
+extern shape mengerL0;
 extern shape mengerL1;
 extern shape mengerL2;
 extern shape* currentShape;
@@ -20,3 +21,5 @@ void resizeD3D(int width, int height);
 void CALLBACK RenderFrame(HWND window, UINT message, UINT_PTR timerID, DWORD currentTime);
 
 void CleanD3D();
+
+void buildShape();
