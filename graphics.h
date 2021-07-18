@@ -7,13 +7,6 @@
 
 #include <windows.h>
 
-typedef struct shape_impl shape;
-
-extern shape mengerL0;
-extern shape mengerL1;
-extern shape mengerL2;
-extern shape* currentShape;
-
 void InitD3D(HWND window, int width, int height);
 
 void resizeD3D(int width, int height);

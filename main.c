@@ -14,6 +14,7 @@
 #include <CommCtrl.h>
 
 #include "graphics.h"
+#include "dynamenger.h"
 
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "comctl32.lib")
@@ -90,16 +91,20 @@ LRESULT WINAPI ScreenSaverProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 #endif
         
         switch (spongeLevel) {
+        case 0:
+            currentShape = &mengerL0;
+            break;
         case 1:
             currentShape = &mengerL1;
+            L1_completeLayers();
             break;
         case 2:
             currentShape = &mengerL2;
+            L2_completeLayers();
             break;
         }
 
-        buildShape();
-        currentShape = &mengerL0;
+        buildShape(currentShape);
 
         // Get window info, and start the engines
         CREATESTRUCT* wInfo = (CREATESTRUCT*) lParam;

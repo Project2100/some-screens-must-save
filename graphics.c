@@ -15,6 +15,45 @@
 #include "vertex.h"
 #include "pixel.h"
 
+#include "dynamenger.h"
+
+
+
+// The world transforms struct, and the transforms
+typedef struct {
+    float orientMatrix[4][4];
+    float pointTranslateMatrix[4][4];
+    float rotateMatrix[4][4];
+    float translateMatrix[4][4];
+} transformMatrices;
+
+
+transformMatrices transforms = {
+    .orientMatrix = {
+        {1.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 1.0f},
+    },
+    .pointTranslateMatrix = {
+        {1.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 1.0f},
+    },
+    .rotateMatrix = {
+        {1.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 1.0f},
+    },
+    .translateMatrix = {
+        {1.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f, 0.3f},
+        {0.0f, 0.0f, 0.0f, 1.0f},
+    },
+};
 
 
 
@@ -54,7 +93,6 @@ D3D11_VIEWPORT viewport;
 
 
 
-
 // Axes orientation, observer's point of view:
 //
 // X: right
@@ -64,12 +102,7 @@ D3D11_VIEWPORT viewport;
 // Triangles that are counter-clockwise are culled by default
 
 
-// The struct that models a 3D RGBA vertex, along with the format description required by the Input Assembly stage
-typedef struct {
-    float x, y, z;
-    float colour[4];
-} vertex;
-
+// The vertex format description required by the Input Assembly stage; has to accurately match the vertex type
 D3D11_INPUT_ELEMENT_DESC vertexInputSpec[2] = {
     {
         .SemanticName = "POSITION",                         // The HLSL semantic associated with this element in a shader input-signature
@@ -84,74 +117,6 @@ D3D11_INPUT_ELEMENT_DESC vertexInputSpec[2] = {
         .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA
     }
 };
-
-#include "mengerL1.h"
-#include "mengerL2.h"
-
-struct shape_impl {
-    vertex* vertices;
-    unsigned int* indices;
-    UINT vertexSize;
-    UINT indexSize;
-    UINT indexCount;
-};
-
-shape mengerL1 = {
-    .vertices = mengerL1_vtcs,
-    .indices = mengerL1_idcs,
-    .vertexSize = sizeof mengerL1_vtcs,
-    .indexSize = sizeof mengerL1_idcs,
-    .indexCount = sizeof mengerL1_idcs / sizeof (unsigned int),
-};
-
-shape mengerL2 = {
-    .vertices = mengerL2_vtcs,
-    .indices = mengerL2_idcs,
-    .vertexSize = sizeof mengerL2_vtcs,
-    .indexSize = sizeof mengerL2_idcs,
-    .indexCount = sizeof mengerL2_idcs / sizeof (unsigned int),
-};
-
-
-shape* currentShape;
-
-
-// The world transforms struct, and the transforms
-typedef struct {
-    float orientMatrix[4][4];
-    float pointTranslateMatrix[4][4];
-    float rotateMatrix[4][4];
-    float translateMatrix[4][4];
-} transformMatrices;
-
-
-transformMatrices transforms = {
-    .orientMatrix = {
-        {1.0f, 0.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 0.0f, 1.0f},
-    },
-    .pointTranslateMatrix = {
-        {1.0f, 0.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 0.0f, 1.0f},
-    },
-    .rotateMatrix = {
-        {1.0f, 0.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 0.0f, 1.0f},
-    },
-    .translateMatrix = {
-        {1.0f, 0.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f, 0.3f},
-        {0.0f, 0.0f, 0.0f, 1.0f},
-    },
-};
-
 
 
 
@@ -757,435 +722,3 @@ void resizeD3D(int width, int height) {
     // Set up the viewport.
     squareViewport(width, height);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-///////////////////////////////DYNAMENGER
-
-
-
-// D3D11 GEOMETRY REMINDERS:
-//
-// DEFAULT POV: "ZPOV"
-// X axis: left to right
-// Y axis down to up
-// Z axis: back to forth
-//
-// Left hand rule: x-middle, y-thumb, z-index
-//
-// triangle front face has clockwise vertices
-//
-// 0: X
-// 1: Y
-// 2: Z
-
-
-int xpovCompare (void* context, const void* a, const void* b) {
-    
-    if (((vertex*) context)[*(unsigned int*) a].x > ((vertex*) context)[*(unsigned int*) b].x) return 1;
-    if (((vertex*) context)[*(unsigned int*) a].x < ((vertex*) context)[*(unsigned int*) b].x) return -1;
-    
-    if (((vertex*) context)[*(unsigned int*) a].z > ((vertex*) context)[*(unsigned int*) b].z) return 1;
-    if (((vertex*) context)[*(unsigned int*) a].z < ((vertex*) context)[*(unsigned int*) b].z) return -1;
-    
-    if (((vertex*) context)[*(unsigned int*) a].y > ((vertex*) context)[*(unsigned int*) b].y) return 1;
-    if (((vertex*) context)[*(unsigned int*) a].y < ((vertex*) context)[*(unsigned int*) b].y) return -1;
-
-    return 0;
-}
-
-int ypovCompare (void* context, const void* a, const void* b) {
-    
-    if (((vertex*) context)[*(unsigned int*) a].y > ((vertex*) context)[*(unsigned int*) b].y) return 1;
-    if (((vertex*) context)[*(unsigned int*) a].y < ((vertex*) context)[*(unsigned int*) b].y) return -1;
-    
-    if (((vertex*) context)[*(unsigned int*) a].x > ((vertex*) context)[*(unsigned int*) b].x) return 1;
-    if (((vertex*) context)[*(unsigned int*) a].x < ((vertex*) context)[*(unsigned int*) b].x) return -1;
-    
-    if (((vertex*) context)[*(unsigned int*) a].z > ((vertex*) context)[*(unsigned int*) b].z) return 1;
-    if (((vertex*) context)[*(unsigned int*) a].z < ((vertex*) context)[*(unsigned int*) b].z) return -1;
-
-    return 0;
-}
-
-int zpovCompare (void* context, const void* a, const void* b) {
-    
-    if (((vertex*) context)[*(unsigned int*) a].z > ((vertex*) context)[*(unsigned int*) b].z) return 1;
-    if (((vertex*) context)[*(unsigned int*) a].z < ((vertex*) context)[*(unsigned int*) b].z) return -1;
-    
-    if (((vertex*) context)[*(unsigned int*) a].y > ((vertex*) context)[*(unsigned int*) b].y) return 1;
-    if (((vertex*) context)[*(unsigned int*) a].y < ((vertex*) context)[*(unsigned int*) b].y) return -1;
-    
-    if (((vertex*) context)[*(unsigned int*) a].x > ((vertex*) context)[*(unsigned int*) b].x) return 1;
-    if (((vertex*) context)[*(unsigned int*) a].x < ((vertex*) context)[*(unsigned int*) b].x) return -1;
-
-    return 0;
-}
-
-int (*comparators[3])(void*, const void*, const void*) = {xpovCompare, ypovCompare, zpovCompare};
-
-
-typedef struct {
-    unsigned int vtxcount;
-    unsigned int idxCount;
-    unsigned int* indexmap;
-} layer;
-
-
-// POV is through the selected axis, facing forward
-// Vertices are sorted in arabic reading order (right-to-left, top-to-bottom)
-// Get the vertices on the current layer
-
-// Rationale: get all the vertices on current layer, unordered. Then, use qsort with the right comparator
-
-// Exclude vertices out of the current layer
-
-// "Left hand rule"
-// ZPOV: positive Y is up, positive X is right
-
-// CAUTION: layers is an array of pointers, fullindexmap is a pointer to an array!
-//
-// NOTE: is it possible to enforce const on vertices without warnings on qsort?
-void buildIndexMap(vertex* vertices, unsigned int vtxcount, layer** layers, unsigned int layerCount, unsigned int** fullIndexMap, unsigned int* indexMapCount) {
-
-    // Compute the index map total size: sum all the layer counts, then multiply by the three axes. Then, allocate the index map
-    *indexMapCount = 0;
-    for (unsigned int layerIdx = 0; layerIdx < layerCount; layerIdx++) {
-        *indexMapCount += layers[layerIdx]->idxCount;
-    }
-    *indexMapCount *= 3;
-    *fullIndexMap = calloc(*indexMapCount, sizeof **fullIndexMap);
-    
-    // Create an array that permutes the vertex order in memory with a sorted order by point of view
-    unsigned int* mirror = malloc(vtxcount * sizeof *mirror);
-    for (unsigned int i = 0; i < vtxcount; i++) {
-        mirror[i] = i;
-    }
-
-#ifdef DEBUG
-    fprintf(instanceLog, "Prepared for index construction\nVertex count: %zu\nIndex map size: %u elements\nMirror array:\n", vtxcount, *indexMapCount);
-
-    for (unsigned int i = 0; i < vtxcount; i++) {
-        fprintf(instanceLog, "%u\n", mirror[i]);
-    }
-#endif
-
-    unsigned int idxcaret = 0;
-
-    // For each of the three axes
-    for (unsigned int axis = 0; axis < 3; axis++) {
-
-        // Construct the idx permutation by sorting the mirroring array with the right comparator
-        // REMINDER: Currenlty sorting from negative to positive
-        qsort_s(mirror, vtxcount, sizeof mirror[0], comparators[axis], vertices);
-
-#ifdef DEBUG
-        fprintf(instanceLog, "permutation sorted:\n");
-        for (unsigned int i = 0; i < vtxcount; i++) {
-            fprintf(instanceLog, "%u\n", mirror[i]);
-        }
-#endif
-
-        unsigned int vtxcaret = 0;
-
-        // POV permutation is ready; for each layer...
-        for (unsigned int layerIdx = 0; layerIdx < layerCount; layerIdx++) {
-
-#ifdef DEBUG
-            fprintf(instanceLog, "Building layer %u\n", layerIdx);
-#endif
-            // ... and for each index in the layer template...
-            for (unsigned int i = 0; i < layers[layerIdx]->idxCount; i++, idxcaret++) {
-
-#ifdef DEBUG
-                fprintf(instanceLog, "writing index %u, should be mapped in position %u + L0_layers[%u]->indexmap[%u]\n", idxcaret, vtxcaret, layerIdx, i);
-                fprintf(instanceLog, "Index in template: %u\n", layers[layerIdx]->indexmap[i]);
-#endif
-                // ....apply the magic
-                (*fullIndexMap)[idxcaret] = mirror[vtxcaret + layers[layerIdx]->indexmap[i]];
-
-#ifdef DEBUG
-                fprintf(instanceLog, "index %u written, result: %u\n", idxcaret, (*fullIndexMap)[idxcaret]);
-#endif
-            }
-
-            vtxcaret += layers[layerIdx]->vtxcount;
-
-        }
-        
-    }
-
-    free(mirror);
-}
-
-
-unsigned int* flipClone(unsigned int* source, unsigned int size) {
-    unsigned int* clone = malloc(size * sizeof *clone);
-
-    for (unsigned int i = 0; i < size; i++) {
-        switch (i % 3) {
-            case 0:
-            clone[i] = source[i];
-            break;
-            case 1:
-            clone[i+1] = source[i];
-            break;
-            case 2:
-            clone[i-1] = source[i];
-            break;
-        }
-    }
-
-    return clone;
-}
-
-
-
-
-
-#define SIDE_UNIT 0.4f
-
-
-#define SU SIDE_UNIT
-vertex mengerL0_vtcs[] = {
-    { SU,  SU, -SU, {0.3f, 0.3f, 0.3f, 1.0f}},
-    { SU, -SU, -SU, {0.3f, 0.3f, 0.3f, 1.0f}},
-    {-SU,  SU, -SU, {0.3f, 0.3f, 0.3f, 1.0f}},
-    {-SU, -SU, -SU, {0.3f, 0.3f, 0.3f, 1.0f}},
-    { SU,  SU,  SU, {0.3f, 0.3f, 0.3f, 1.0f}},
-    { SU, -SU,  SU, {0.3f, 0.3f, 0.3f, 1.0f}},
-    {-SU,  SU,  SU, {0.3f, 0.3f, 0.3f, 1.0f}},
-    {-SU, -SU,  SU, {0.3f, 0.3f, 0.3f, 1.0f}},
-};
-const size_t mengerL0_vtxcount = sizeof mengerL0_vtcs / sizeof *mengerL0_vtcs;
-
-
-
-
-
-
-
-
-
-layer* L0_layers[2] = {
-    &((layer) {
-        .vtxcount = 4,
-        .idxCount = 6,
-        .indexmap = ((unsigned int[6]) {0, 2, 1, 1, 2, 3}), // Negative layer - counter
-    }),
-    &((layer) {
-        .vtxcount = 4,
-        .idxCount = 6,
-        .indexmap = ((unsigned int[6]) {0, 1, 2, 1, 3, 2}), // Positive layer - clock
-    }),
-};
-const size_t L0_layerCount = sizeof L0_layers / sizeof L0_layers[0];
-
-
-
-
-
-
-layer* L1_layers[] = {
-    &((layer) {
-        .vtxcount = 8,
-        .idxCount = 24,
-        .indexmap = ((unsigned int[24]) {0, 2, 3, 0, 3, 1, 1, 3, 5, 1, 5, 7, 7, 5, 4, 7, 4, 6, 6, 4, 2, 6, 2, 0}), // counter, reading order (it works?!?)
-    }),
-    &((layer) {
-        .vtxcount = 12,
-        .idxCount = 24,
-        // .indexmap = ((unsigned int[24]) {0, 1, 2, 1, 3, 2}), // Negative layer
-    }),
-    &((layer) {
-        .vtxcount = 12,
-        .idxCount = 24,
-        .indexmap = ((unsigned int[24]) {0, 4, 3, 0, 1, 4, 5, 8, 4, 5, 9, 8, 11, 7, 8, 11, 10, 7, 6, 3, 7, 6, 2, 3}), // counter, reading order (it works?!?)
-    }),
-    &((layer) {
-        .vtxcount = 8,
-        .idxCount = 24,
-        // .indexmap = ((unsigned int[24]) {0, 1, 2, 1, 3, 2}), // Positive layer
-    }),
-};
-const size_t L1_layerCount = sizeof L1_layers / sizeof L1_layers[0];
-
-
-layer* L2_layers[] = {
-    &((layer) { // type 1
-        .vtxcount = 40,
-        .idxCount = 3 * 28,
-        // .indexmap = ((unsigned int[84]) {}), // counter, reading order (it works?!?)
-    }),
-    &((layer) { // type 2
-        .vtxcount = 64,
-        .idxCount = 3 * 48,
-        // .indexmap = ((unsigned int[24]) {0, 1, 2, 1, 3, 2}), // clock
-    }),
-    &((layer) { // type 2
-        .vtxcount = 64,
-        .idxCount = 3 * 48,
-        // .indexmap = ((unsigned int[24]) {0, 4, 3, 0, 1, 4, 5, 8, 4, 5, 9, 8, 11, 7, 8, 11, 10, 7, 6, 3, 7, 6, 2, 3}), // counter, reading order (it works?!?)
-    }),
-    &((layer) { // type 3
-        .vtxcount = 28,
-        .idxCount = 3 * 32,
-        // .indexmap = ((unsigned int[24]) {0, 1, 2, 1, 3, 2}), // clock
-    }),
-    &((layer) {
-        .vtxcount = 48,
-        .idxCount = 3 * 32,
-        // .indexmap = ((unsigned int[24]) {0, 1, 2, 1, 3, 2}), // clock
-    }),
-    &((layer) {
-        .vtxcount = 48,
-        .idxCount = 3 * 32,
-        // .indexmap = ((unsigned int[24]) {0, 1, 2, 1, 3, 2}), // counter
-    }),
-    &((layer) { // type 3
-        .vtxcount = 28,
-        .idxCount = 3 * 32,
-        // .indexmap = ((unsigned int[24]) {0, 1, 2, 1, 3, 2}), // counter
-    }),
-    &((layer) { // type 2
-        .vtxcount = 64,
-        .idxCount = 3 * 48,
-        // .indexmap = ((unsigned int[24]) {0, 1, 2, 1, 3, 2}), // clock
-    }),
-    &((layer) { // type 2
-        .vtxcount = 64,
-        .idxCount = 3 * 48,
-        // .indexmap = ((unsigned int[24]) {0, 1, 2, 1, 3, 2}), // counter
-    }),
-    &((layer) { // type 1
-        .vtxcount = 40,
-        .idxCount = 3 * 28,
-        // .indexmap = ((unsigned int[24]) {0, 1, 2, 1, 3, 2}), // clock
-    }),
-};
-const size_t L2_layerCount = sizeof L2_layers / sizeof L2_layers[0];
-
-
-unsigned int L2_template0[3 * 28] = {
-     0,  2,  7,  0,  7,  1,  1,  7, 37,  1, 37, 39, 39, 37, 32, 39, 32, 38, 38, 32,  2, 38,  2,  0,
-     5, 11, 12,  5, 12,  6, 23, 22, 30, 23, 30, 31, 34, 28, 27, 34, 27, 33, 16, 17,  9, 16,  9,  8,
-     3, 14, 15,  3, 10,  4, 10, 15, 13, 13, 15, 25, 13, 18, 19, 18, 25, 36, 36, 25, 24, 36, 29, 35, 29, 24, 26, 26, 24, 14, 26, 21, 20, 21, 14,  3};
-unsigned int L2_template1[3 * 48] = {
-     0,  7,  8,  0,  8,  1,  2,  9, 10,  2, 10,  3,  4, 11, 12,  4, 12,  5,
-    13, 12, 20, 13, 20, 21, 31, 30, 38, 31, 38, 39, 49, 48, 56, 49, 56, 57,
-    63, 56, 55, 63, 55, 62, 61, 54, 53, 61, 53, 60, 59, 52, 51, 59, 51, 58,
-    50, 51, 43, 50, 43, 42, 32, 33, 25, 32, 25, 24, 14, 15,  7, 14,  7,  6,
-     8, 16, 17,  8, 17,  9, 10, 18, 19, 10, 19, 11, 20, 19, 29, 20, 29, 30, 38, 37, 47, 38, 47, 48, 55, 47, 46, 55, 46, 54, 53, 45, 44, 53, 44, 52, 43, 44, 34, 43, 34, 33, 25, 26, 16, 25, 16, 15,
-    17, 22, 23, 17, 23, 18, 29, 28, 36, 29, 36, 37, 46, 41, 40, 46, 40, 45, 34, 35, 27, 34, 27, 26};
-unsigned int L2_template2[3 * 32] = {
-     0,  2,  3,  0,  3,  1,  1,  3,  5,  1,  5,  8,  8,  5,  4,  8,  4,  7,  7,  4,  2,  7,  2,  0,
-     9, 13, 17,  9, 17, 21, 21, 17, 16, 21, 16, 20, 20, 16, 12, 20, 12,  8,  8, 12, 13,  8, 13,  9,
-    27, 25, 24, 27, 24, 26, 26, 24, 22, 26, 22, 19, 19, 22, 23, 19, 23, 20, 20, 23, 25, 20, 25, 27,
-    18, 14, 10, 18, 10,  6,  6, 10, 11,  6, 11,  7,  7, 11, 15,  7, 15, 19, 19, 15, 14, 19, 14, 18};
-unsigned int L2_template3[3 * 32] = {
-     0,  5,  6,  0,  6,  1,  7,  6, 14,  7, 14, 15, 21, 14, 13, 21, 13, 20, 12, 13,  5, 12,  5,  4,
-    11, 10, 18, 11, 18, 19, 23, 18, 17, 23, 17, 22, 16, 17,  9, 16,  9,  8,  2,  9, 10,  2, 10,  3,
-    47, 42, 41, 47, 41, 46, 40, 41, 33, 40, 33, 32, 26, 33, 34, 26, 34, 27, 35, 34, 42, 35, 42, 43,
-    36, 37, 29, 36, 29, 28, 24, 29, 30, 24, 30, 25, 31, 30, 38, 31, 38, 39, 45, 38, 37, 45, 37, 44};
-
-
-
-unsigned int* L2_template0_flipped;
-unsigned int* L2_template1_flipped;
-unsigned int* L2_template2_flipped;
-unsigned int* L2_template3_flipped;
-
-
-void L2_completeLayers() {
-    L2_template0_flipped = flipClone(L2_template0, 3 * 28);
-    L2_template1_flipped = flipClone(L2_template1, 3 * 48);
-    L2_template2_flipped = flipClone(L2_template2, 3 * 32);
-    L2_template3_flipped = flipClone(L2_template3, 3 * 32);
-
-    L2_layers[0]->indexmap = L2_template0;
-    L2_layers[1]->indexmap = L2_template1_flipped;
-    L2_layers[2]->indexmap = L2_template1;
-    L2_layers[3]->indexmap = L2_template2_flipped;
-    L2_layers[4]->indexmap = L2_template3_flipped;
-    L2_layers[5]->indexmap = L2_template3;
-    L2_layers[6]->indexmap = L2_template2;
-    L2_layers[7]->indexmap = L2_template1_flipped;
-    L2_layers[8]->indexmap = L2_template1;
-    L2_layers[9]->indexmap = L2_template0_flipped;
-}
-
-
-void L1_completeLayers() {
-    L1_layers[3]->indexmap = flipClone(L1_layers[0]->indexmap, 24);
-    L1_layers[1]->indexmap = flipClone(L1_layers[2]->indexmap, 24);
-}
-
-
-
-shape mengerL0;
-
-
-void buildShape() {
-
-#ifdef DEBUG
-    fprintf(instanceLog, "Building L0\n");
-#endif
-
-    unsigned int* idxmap;
-    unsigned int mapcount;
-
-    // L1_completeLayers();
-    L2_completeLayers();
-
-    // L0
-    // buildIndexMap(mengerL0_vtcs, mengerL0_vtxcount, L0_layers, L0_layerCount, &idxmap, &mapcount);
-    //buildIndexMap(mengerL1_vtcs, sizeof mengerL1_vtcs / sizeof *mengerL1_vtcs, L1_layers, L1_layerCount, &idxmap, &mapcount);
-    buildIndexMap(mengerL2_vtcs, sizeof mengerL2_vtcs / sizeof *mengerL2_vtcs, L2_layers, L2_layerCount, &idxmap, &mapcount);
-
-#ifdef DEBUG
-    fprintf(instanceLog, "L0 index built, size: %u\n", mapcount);
-
-    for (unsigned int i = 0; i < mapcount; i++){
-        fprintf(instanceLog, "%u\n", idxmap[i]);
-    }
-#endif
-
-    // L0
-    // mengerL0 = (shape) {
-    //     .vertices = mengerL0_vtcs,
-    //     .indices = idxmap,
-    //     .vertexSize = sizeof mengerL0_vtcs,
-    //     .indexSize = (mapcount) * sizeof *idxmap,
-    //     .indexCount = mapcount,
-    // };
-    mengerL0 = (shape) {
-        .vertices = mengerL2_vtcs,
-        .indices = idxmap,
-        .vertexSize = sizeof mengerL2_vtcs,
-        .indexSize = (mapcount) * sizeof *idxmap,
-        .indexCount = mapcount,
-    };
-
-#ifdef DEBUG
-    fprintf(instanceLog, "L0 shape: vtxbytes %u, idxbytes %u, idxcount %u\n", mengerL0.vertexSize, mengerL0.indexSize, mengerL0.indexCount);
-#endif
-}
-
-
-
-
-
-
-
