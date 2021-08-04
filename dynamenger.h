@@ -6,18 +6,15 @@
 
 // The struct that models a 3D RGBA vertex, 
 typedef struct {
-    float x, y, z;
+    float position[4];
     float colour[4];
 } vertex;
-
 
 typedef struct {
     unsigned int vtxcount;
     unsigned int idxCount;
     unsigned int* indexmap;
 } layer;
-
-
 
 typedef struct {
     vertex* vertices;
@@ -28,18 +25,11 @@ typedef struct {
     unsigned int vertexCount;
     layer** layers;
     unsigned int layerCount;
+    void (*compileLayers)();
 } shape;
 
 
-
-
-
-extern shape mengerL0;
-extern shape mengerL1;
-extern shape mengerL2;
 extern shape* currentShape;
 
-void L1_completeLayers();
-void L2_completeLayers();
 
-void buildShape(shape* crShape);
+void buildShape();

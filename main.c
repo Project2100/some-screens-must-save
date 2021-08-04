@@ -90,21 +90,8 @@ LRESULT WINAPI ScreenSaverProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
         fprintf(instanceLog, "Sponge level: %lu\n", spongeLevel);
 #endif
         
-        switch (spongeLevel) {
-        case 0:
-            currentShape = &mengerL0;
-            break;
-        case 1:
-            currentShape = &mengerL1;
-            L1_completeLayers();
-            break;
-        case 2:
-            currentShape = &mengerL2;
-            L2_completeLayers();
-            break;
-        }
-
-        buildShape(currentShape);
+        // Let Dynamenger do the hard work
+        buildShape(spongeLevel);
 
         // Get window info, and start the engines
         CREATESTRUCT* wInfo = (CREATESTRUCT*) lParam;

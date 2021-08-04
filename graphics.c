@@ -106,7 +106,7 @@ D3D11_VIEWPORT viewport;
 D3D11_INPUT_ELEMENT_DESC vertexInputSpec[2] = {
     {
         .SemanticName = "POSITION",                         // The HLSL semantic associated with this element in a shader input-signature
-        .Format = DXGI_FORMAT_R32G32B32_FLOAT,              // The data type of the element data
+        .Format = DXGI_FORMAT_R32G32B32A32_FLOAT,              // The data type of the element data
         .AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT,  // Offset (in bytes) from the start of the vertex
         .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA       // Identifies the input data class for a single input slot
     },
