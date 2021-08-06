@@ -227,18 +227,13 @@ typedef struct {
     vertex* planeYn;
     vertex* planeZp;
     vertex* planeZn;
-    vertex* outer;
     unsigned int innerCount;
     unsigned int planeCount;
-    unsigned int outerCount;
 
 } replica;
 
 
-replica base = {
-    .outer = mengerL0_vtcs,
-    .outerCount = 8,
-};
+replica base = {0};
 
 
 float pppTransform[4][4] = {
@@ -369,17 +364,6 @@ float nncTransform[4][4] = {
 };
 
 
-// For the 8 grid vertices that must be added to inner
-float cccTransform[4][4] = {
-    {1.f/3, 0, 0, 0},
-    {0, 1.f/3, 0, 0},
-    {0, 0, 1.f/3, 0},
-    {0, 0, 0, 1},
-};
-
-
-
-
 void applyTransform(float* vector, float transform[4][4]) {
 
     float x = vector[0] * transform[0][0] + vector[1] * transform[1][0] + vector[2] * transform[2][0] + vector[3] * transform[3][0]; 
@@ -413,107 +397,100 @@ void cloneVertices(vertex* dest, unsigned int* caret, vertex* plane, const unsig
 }
 
 
-replica* levelUp(replica* block) {
+void levelUp(replica* block) {
 
-    replica* big = malloc(sizeof *big);
+    unsigned int biginnerCount = block->innerCount * 20 + block->planeCount * 24 + 8;
+    unsigned int bigplaneCount = block->planeCount * 8 + 4;
 
-    big->innerCount = block->innerCount * 20 + block->planeCount * 24 + 8;
-    big->planeCount = block->planeCount * 8 + 4;
-    big->outerCount = 8;
-
-    
 #ifdef DEBUG
-    fprintf(instanceLog, "About to level up; expected vertex counts: %u outer + 6 * %u side + %u inner = %u total\n", big->outerCount, big->planeCount, big->innerCount, big->outerCount + 6 * big->planeCount + big->innerCount);
+    fprintf(instanceLog, "About to level up; expected vertex counts: %u outer + 6 * %u side + %u inner = %u total\n", bigouterCount, bigplaneCount, biginnerCount, bigouterCount + 6 * bigplaneCount + biginnerCount);
     fprintf(instanceLog, "block addresses: %p %p %p %p %p %p %p %p\n", block->inner, block->planeXp, block->planeXn, block->planeYp, block->planeYn, block->planeZp, block->planeZn, block->outer);
 #endif
 
     // Guaranteed not to invoke malloc(0), as the sizeof coefficients have an additive, positive constant
-    big->inner = malloc(big->innerCount * sizeof *(big->inner));
-    big->planeXp = malloc(big->planeCount * sizeof *(big->planeXp));
-    big->planeXn = malloc(big->planeCount * sizeof *(big->planeXn));
-    big->planeYp = malloc(big->planeCount * sizeof *(big->planeYp));
-    big->planeYn = malloc(big->planeCount * sizeof *(big->planeYn));
-    big->planeZp = malloc(big->planeCount * sizeof *(big->planeZp));
-    big->planeZn = malloc(big->planeCount * sizeof *(big->planeZn));
-    big->outer = malloc(big->outerCount * sizeof *(big->outer));
+    vertex* biginner = malloc(biginnerCount * sizeof *(biginner));
+    vertex* bigplaneXp = malloc(bigplaneCount * sizeof *(bigplaneXp));
+    vertex* bigplaneXn = malloc(bigplaneCount * sizeof *(bigplaneXn));
+    vertex* bigplaneYp = malloc(bigplaneCount * sizeof *(bigplaneYp));
+    vertex* bigplaneYn = malloc(bigplaneCount * sizeof *(bigplaneYn));
+    vertex* bigplaneZp = malloc(bigplaneCount * sizeof *(bigplaneZp));
+    vertex* bigplaneZn = malloc(bigplaneCount * sizeof *(bigplaneZn));
 
 #ifdef DEBUG
-    fprintf(instanceLog, "clone addresses: %p %p %p %p %p %p %p %p\n", big->inner, big->planeXp, big->planeXn, big->planeYp, big->planeYn, big->planeZp, big->planeZn, big->outer);
+    fprintf(instanceLog, "clone addresses: %p %p %p %p %p %p %p %p\n", biginner, bigplaneXp, bigplaneXn, bigplaneYp, bigplaneYn, bigplaneZp, bigplaneZn, bigouter);
     
     fprintf(instanceLog, "buffers allocated\n");
 #endif
-
-    // OUTER
-    // Copy outmost vertices, they will be always present
-    memcpy(big->outer, block->outer, block->outerCount * sizeof *(block->outer));
-
 
 
     // INNER
     unsigned int innerCaret = 0;
 
     // The 8 grid vertices
-    memcpy(big->inner, block->outer, block->outerCount * sizeof *(block->outer));
-    for (0 ; innerCaret < block->outerCount; innerCaret++) {
-        applyTransform(big->inner[innerCaret].position, cccTransform);
-    }
+    biginner[innerCaret++] = (vertex) {{ SU/3,  SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    biginner[innerCaret++] = (vertex) {{ SU/3, -SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    biginner[innerCaret++] = (vertex) {{-SU/3,  SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    biginner[innerCaret++] = (vertex) {{-SU/3, -SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    biginner[innerCaret++] = (vertex) {{ SU/3,  SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    biginner[innerCaret++] = (vertex) {{ SU/3, -SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    biginner[innerCaret++] = (vertex) {{-SU/3,  SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    biginner[innerCaret++] = (vertex) {{-SU/3, -SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
     
-
-
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, pppTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, ppnTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, pnpTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, pnnTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, nppTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, npnTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, nnpTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, nnnTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, cppTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, cpnTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, cnpTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, cnnTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, pcpTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, pcnTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, ncpTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, ncnTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, ppcTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, pncTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, npcTransform);
-    cloneVertices(big->inner, &innerCaret, block->inner, block->innerCount, nncTransform);
+    // The 20 blocks
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, pppTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, ppnTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, pnpTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, pnnTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, nppTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, npnTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, nnpTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, nnnTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, cppTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, cpnTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, cnpTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, cnnTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, pcpTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, pcnTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, ncpTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, ncnTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, ppcTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, pncTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, npcTransform);
+    cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, nncTransform);
     
 #ifdef DEBUG
     fprintf(instanceLog, "inner inners done\n");
 #endif
 
     // Inner sides - X
-    cloneVertices(big->inner, &innerCaret, block->planeYn, block->planeCount, cppTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeZn, block->planeCount, cppTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeYn, block->planeCount, cpnTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeZp, block->planeCount, cpnTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeYp, block->planeCount, cnpTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeZn, block->planeCount, cnpTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeYp, block->planeCount, cnnTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeZp, block->planeCount, cnnTransform);
+    cloneVertices(biginner, &innerCaret, block->planeYn, block->planeCount, cppTransform);
+    cloneVertices(biginner, &innerCaret, block->planeZn, block->planeCount, cppTransform);
+    cloneVertices(biginner, &innerCaret, block->planeYn, block->planeCount, cpnTransform);
+    cloneVertices(biginner, &innerCaret, block->planeZp, block->planeCount, cpnTransform);
+    cloneVertices(biginner, &innerCaret, block->planeYp, block->planeCount, cnpTransform);
+    cloneVertices(biginner, &innerCaret, block->planeZn, block->planeCount, cnpTransform);
+    cloneVertices(biginner, &innerCaret, block->planeYp, block->planeCount, cnnTransform);
+    cloneVertices(biginner, &innerCaret, block->planeZp, block->planeCount, cnnTransform);
 
     // Inner sides - Y
-    cloneVertices(big->inner, &innerCaret, block->planeXn, block->planeCount, pcpTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeZn, block->planeCount, pcpTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeXn, block->planeCount, pcnTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeZp, block->planeCount, pcnTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeXp, block->planeCount, ncpTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeZn, block->planeCount, ncpTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeXp, block->planeCount, ncnTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeZp, block->planeCount, ncnTransform);
+    cloneVertices(biginner, &innerCaret, block->planeXn, block->planeCount, pcpTransform);
+    cloneVertices(biginner, &innerCaret, block->planeZn, block->planeCount, pcpTransform);
+    cloneVertices(biginner, &innerCaret, block->planeXn, block->planeCount, pcnTransform);
+    cloneVertices(biginner, &innerCaret, block->planeZp, block->planeCount, pcnTransform);
+    cloneVertices(biginner, &innerCaret, block->planeXp, block->planeCount, ncpTransform);
+    cloneVertices(biginner, &innerCaret, block->planeZn, block->planeCount, ncpTransform);
+    cloneVertices(biginner, &innerCaret, block->planeXp, block->planeCount, ncnTransform);
+    cloneVertices(biginner, &innerCaret, block->planeZp, block->planeCount, ncnTransform);
 
     // Inner sides - Z
-    cloneVertices(big->inner, &innerCaret, block->planeXn, block->planeCount, ppcTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeYn, block->planeCount, ppcTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeXn, block->planeCount, pncTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeYp, block->planeCount, pncTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeXp, block->planeCount, npcTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeYn, block->planeCount, npcTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeXp, block->planeCount, nncTransform);
-    cloneVertices(big->inner, &innerCaret, block->planeYp, block->planeCount, nncTransform);
+    cloneVertices(biginner, &innerCaret, block->planeXn, block->planeCount, ppcTransform);
+    cloneVertices(biginner, &innerCaret, block->planeYn, block->planeCount, ppcTransform);
+    cloneVertices(biginner, &innerCaret, block->planeXn, block->planeCount, pncTransform);
+    cloneVertices(biginner, &innerCaret, block->planeYp, block->planeCount, pncTransform);
+    cloneVertices(biginner, &innerCaret, block->planeXp, block->planeCount, npcTransform);
+    cloneVertices(biginner, &innerCaret, block->planeYn, block->planeCount, npcTransform);
+    cloneVertices(biginner, &innerCaret, block->planeXp, block->planeCount, nncTransform);
+    cloneVertices(biginner, &innerCaret, block->planeYp, block->planeCount, nncTransform);
 
 #ifdef DEBUG
     fprintf(instanceLog, "inner done\n");
@@ -526,36 +503,36 @@ replica* levelUp(replica* block) {
 #endif
     // Xp
     innerCaret = 0;
-    cloneVertices(big->planeXp, &innerCaret, block->planeXp, block->planeCount, pppTransform);
-    cloneVertices(big->planeXp, &innerCaret, block->planeXp, block->planeCount, pcpTransform);
-    cloneVertices(big->planeXp, &innerCaret, block->planeXp, block->planeCount, pnpTransform);
-    cloneVertices(big->planeXp, &innerCaret, block->planeXp, block->planeCount, pncTransform);
-    cloneVertices(big->planeXp, &innerCaret, block->planeXp, block->planeCount, pnnTransform);
-    cloneVertices(big->planeXp, &innerCaret, block->planeXp, block->planeCount, pcnTransform);
-    cloneVertices(big->planeXp, &innerCaret, block->planeXp, block->planeCount, ppnTransform);
-    cloneVertices(big->planeXp, &innerCaret, block->planeXp, block->planeCount, ppcTransform);
-    big->planeXp[innerCaret + 0] = (vertex) {{ SU,  SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    big->planeXp[innerCaret + 1] = (vertex) {{ SU,  SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    big->planeXp[innerCaret + 2] = (vertex) {{ SU, -SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    big->planeXp[innerCaret + 3] = (vertex) {{ SU, -SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    cloneVertices(bigplaneXp, &innerCaret, block->planeXp, block->planeCount, pppTransform);
+    cloneVertices(bigplaneXp, &innerCaret, block->planeXp, block->planeCount, pcpTransform);
+    cloneVertices(bigplaneXp, &innerCaret, block->planeXp, block->planeCount, pnpTransform);
+    cloneVertices(bigplaneXp, &innerCaret, block->planeXp, block->planeCount, pncTransform);
+    cloneVertices(bigplaneXp, &innerCaret, block->planeXp, block->planeCount, pnnTransform);
+    cloneVertices(bigplaneXp, &innerCaret, block->planeXp, block->planeCount, pcnTransform);
+    cloneVertices(bigplaneXp, &innerCaret, block->planeXp, block->planeCount, ppnTransform);
+    cloneVertices(bigplaneXp, &innerCaret, block->planeXp, block->planeCount, ppcTransform);
+    bigplaneXp[innerCaret++] = (vertex) {{ SU,  SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneXp[innerCaret++] = (vertex) {{ SU,  SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneXp[innerCaret++] = (vertex) {{ SU, -SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneXp[innerCaret++] = (vertex) {{ SU, -SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
 
 #ifdef DEBUG
     fprintf(instanceLog, "Xn\n");
 #endif
     // Xn
     innerCaret = 0;
-    cloneVertices(big->planeXn, &innerCaret, block->planeXn, block->planeCount, nppTransform);
-    cloneVertices(big->planeXn, &innerCaret, block->planeXn, block->planeCount, ncpTransform);
-    cloneVertices(big->planeXn, &innerCaret, block->planeXn, block->planeCount, nnpTransform);
-    cloneVertices(big->planeXn, &innerCaret, block->planeXn, block->planeCount, nncTransform);
-    cloneVertices(big->planeXn, &innerCaret, block->planeXn, block->planeCount, nnnTransform);
-    cloneVertices(big->planeXn, &innerCaret, block->planeXn, block->planeCount, ncnTransform);
-    cloneVertices(big->planeXn, &innerCaret, block->planeXn, block->planeCount, npnTransform);
-    cloneVertices(big->planeXn, &innerCaret, block->planeXn, block->planeCount, npcTransform);
-    big->planeXn[innerCaret + 0] = (vertex) {{-SU,  SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    big->planeXn[innerCaret + 1] = (vertex) {{-SU,  SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    big->planeXn[innerCaret + 2] = (vertex) {{-SU, -SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    big->planeXn[innerCaret + 3] = (vertex) {{-SU, -SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    cloneVertices(bigplaneXn, &innerCaret, block->planeXn, block->planeCount, nppTransform);
+    cloneVertices(bigplaneXn, &innerCaret, block->planeXn, block->planeCount, ncpTransform);
+    cloneVertices(bigplaneXn, &innerCaret, block->planeXn, block->planeCount, nnpTransform);
+    cloneVertices(bigplaneXn, &innerCaret, block->planeXn, block->planeCount, nncTransform);
+    cloneVertices(bigplaneXn, &innerCaret, block->planeXn, block->planeCount, nnnTransform);
+    cloneVertices(bigplaneXn, &innerCaret, block->planeXn, block->planeCount, ncnTransform);
+    cloneVertices(bigplaneXn, &innerCaret, block->planeXn, block->planeCount, npnTransform);
+    cloneVertices(bigplaneXn, &innerCaret, block->planeXn, block->planeCount, npcTransform);
+    bigplaneXn[innerCaret++] = (vertex) {{-SU,  SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneXn[innerCaret++] = (vertex) {{-SU,  SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneXn[innerCaret++] = (vertex) {{-SU, -SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneXn[innerCaret++] = (vertex) {{-SU, -SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
 
 
 #ifdef DEBUG
@@ -563,36 +540,36 @@ replica* levelUp(replica* block) {
 #endif
     // Yp
     innerCaret = 0;
-    cloneVertices(big->planeYp, &innerCaret, block->planeYp, block->planeCount, pppTransform);
-    cloneVertices(big->planeYp, &innerCaret, block->planeYp, block->planeCount, cppTransform);
-    cloneVertices(big->planeYp, &innerCaret, block->planeYp, block->planeCount, nppTransform);
-    cloneVertices(big->planeYp, &innerCaret, block->planeYp, block->planeCount, npcTransform);
-    cloneVertices(big->planeYp, &innerCaret, block->planeYp, block->planeCount, npnTransform);
-    cloneVertices(big->planeYp, &innerCaret, block->planeYp, block->planeCount, cpnTransform);
-    cloneVertices(big->planeYp, &innerCaret, block->planeYp, block->planeCount, ppnTransform);
-    cloneVertices(big->planeYp, &innerCaret, block->planeYp, block->planeCount, ppcTransform);
-    big->planeYp[innerCaret + 0] = (vertex) {{ SU/3,  SU,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    big->planeYp[innerCaret + 1] = (vertex) {{ SU/3,  SU, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    big->planeYp[innerCaret + 2] = (vertex) {{-SU/3,  SU,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    big->planeYp[innerCaret + 3] = (vertex) {{-SU/3,  SU, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    cloneVertices(bigplaneYp, &innerCaret, block->planeYp, block->planeCount, pppTransform);
+    cloneVertices(bigplaneYp, &innerCaret, block->planeYp, block->planeCount, cppTransform);
+    cloneVertices(bigplaneYp, &innerCaret, block->planeYp, block->planeCount, nppTransform);
+    cloneVertices(bigplaneYp, &innerCaret, block->planeYp, block->planeCount, npcTransform);
+    cloneVertices(bigplaneYp, &innerCaret, block->planeYp, block->planeCount, npnTransform);
+    cloneVertices(bigplaneYp, &innerCaret, block->planeYp, block->planeCount, cpnTransform);
+    cloneVertices(bigplaneYp, &innerCaret, block->planeYp, block->planeCount, ppnTransform);
+    cloneVertices(bigplaneYp, &innerCaret, block->planeYp, block->planeCount, ppcTransform);
+    bigplaneYp[innerCaret++] = (vertex) {{ SU/3,  SU,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneYp[innerCaret++] = (vertex) {{ SU/3,  SU, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneYp[innerCaret++] = (vertex) {{-SU/3,  SU,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneYp[innerCaret++] = (vertex) {{-SU/3,  SU, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
 
 #ifdef DEBUG
     fprintf(instanceLog, "Yn\n");
 #endif
     // Yn
     innerCaret = 0;
-    cloneVertices(big->planeYn, &innerCaret, block->planeYn, block->planeCount, pnpTransform);
-    cloneVertices(big->planeYn, &innerCaret, block->planeYn, block->planeCount, cnpTransform);
-    cloneVertices(big->planeYn, &innerCaret, block->planeYn, block->planeCount, nnpTransform);
-    cloneVertices(big->planeYn, &innerCaret, block->planeYn, block->planeCount, nncTransform);
-    cloneVertices(big->planeYn, &innerCaret, block->planeYn, block->planeCount, nnnTransform);
-    cloneVertices(big->planeYn, &innerCaret, block->planeYn, block->planeCount, cnnTransform);
-    cloneVertices(big->planeYn, &innerCaret, block->planeYn, block->planeCount, pnnTransform);
-    cloneVertices(big->planeYn, &innerCaret, block->planeYn, block->planeCount, pncTransform);
-    big->planeYn[innerCaret + 0] = (vertex) {{ SU/3, -SU,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    big->planeYn[innerCaret + 1] = (vertex) {{ SU/3, -SU, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    big->planeYn[innerCaret + 2] = (vertex) {{-SU/3, -SU,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    big->planeYn[innerCaret + 3] = (vertex) {{-SU/3, -SU, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    cloneVertices(bigplaneYn, &innerCaret, block->planeYn, block->planeCount, pnpTransform);
+    cloneVertices(bigplaneYn, &innerCaret, block->planeYn, block->planeCount, cnpTransform);
+    cloneVertices(bigplaneYn, &innerCaret, block->planeYn, block->planeCount, nnpTransform);
+    cloneVertices(bigplaneYn, &innerCaret, block->planeYn, block->planeCount, nncTransform);
+    cloneVertices(bigplaneYn, &innerCaret, block->planeYn, block->planeCount, nnnTransform);
+    cloneVertices(bigplaneYn, &innerCaret, block->planeYn, block->planeCount, cnnTransform);
+    cloneVertices(bigplaneYn, &innerCaret, block->planeYn, block->planeCount, pnnTransform);
+    cloneVertices(bigplaneYn, &innerCaret, block->planeYn, block->planeCount, pncTransform);
+    bigplaneYn[innerCaret++] = (vertex) {{ SU/3, -SU,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneYn[innerCaret++] = (vertex) {{ SU/3, -SU, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneYn[innerCaret++] = (vertex) {{-SU/3, -SU,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneYn[innerCaret++] = (vertex) {{-SU/3, -SU, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
 
 
 #ifdef DEBUG
@@ -600,137 +577,123 @@ replica* levelUp(replica* block) {
 #endif
     // Zp
     innerCaret = 0;
-    cloneVertices(big->planeZp, &innerCaret, block->planeZp, block->planeCount, pppTransform);
-    cloneVertices(big->planeZp, &innerCaret, block->planeZp, block->planeCount, cppTransform);
-    cloneVertices(big->planeZp, &innerCaret, block->planeZp, block->planeCount, nppTransform);
-    cloneVertices(big->planeZp, &innerCaret, block->planeZp, block->planeCount, ncpTransform);
-    cloneVertices(big->planeZp, &innerCaret, block->planeZp, block->planeCount, nnpTransform);
-    cloneVertices(big->planeZp, &innerCaret, block->planeZp, block->planeCount, cnpTransform);
-    cloneVertices(big->planeZp, &innerCaret, block->planeZp, block->planeCount, pnpTransform);
-    cloneVertices(big->planeZp, &innerCaret, block->planeZp, block->planeCount, pcpTransform);
-    big->planeZp[innerCaret + 0] = (vertex) {{ SU/3,  SU/3,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    big->planeZp[innerCaret + 1] = (vertex) {{ SU/3, -SU/3,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    big->planeZp[innerCaret + 2] = (vertex) {{-SU/3,  SU/3,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    big->planeZp[innerCaret + 3] = (vertex) {{-SU/3, -SU/3,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    cloneVertices(bigplaneZp, &innerCaret, block->planeZp, block->planeCount, pppTransform);
+    cloneVertices(bigplaneZp, &innerCaret, block->planeZp, block->planeCount, cppTransform);
+    cloneVertices(bigplaneZp, &innerCaret, block->planeZp, block->planeCount, nppTransform);
+    cloneVertices(bigplaneZp, &innerCaret, block->planeZp, block->planeCount, ncpTransform);
+    cloneVertices(bigplaneZp, &innerCaret, block->planeZp, block->planeCount, nnpTransform);
+    cloneVertices(bigplaneZp, &innerCaret, block->planeZp, block->planeCount, cnpTransform);
+    cloneVertices(bigplaneZp, &innerCaret, block->planeZp, block->planeCount, pnpTransform);
+    cloneVertices(bigplaneZp, &innerCaret, block->planeZp, block->planeCount, pcpTransform);
+    bigplaneZp[innerCaret++] = (vertex) {{ SU/3,  SU/3,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneZp[innerCaret++] = (vertex) {{ SU/3, -SU/3,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneZp[innerCaret++] = (vertex) {{-SU/3,  SU/3,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneZp[innerCaret++] = (vertex) {{-SU/3, -SU/3,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
 
 #ifdef DEBUG
     fprintf(instanceLog, "Zn\n");
 #endif
     // Zn
     innerCaret = 0;
-    cloneVertices(big->planeZn, &innerCaret, block->planeZn, block->planeCount, ppnTransform);
-    cloneVertices(big->planeZn, &innerCaret, block->planeZn, block->planeCount, cpnTransform);
-    cloneVertices(big->planeZn, &innerCaret, block->planeZn, block->planeCount, npnTransform);
-    cloneVertices(big->planeZn, &innerCaret, block->planeZn, block->planeCount, ncnTransform);
-    cloneVertices(big->planeZn, &innerCaret, block->planeZn, block->planeCount, nnnTransform);
-    cloneVertices(big->planeZn, &innerCaret, block->planeZn, block->planeCount, cnnTransform);
-    cloneVertices(big->planeZn, &innerCaret, block->planeZn, block->planeCount, pnnTransform);
-    cloneVertices(big->planeZn, &innerCaret, block->planeZn, block->planeCount, pcnTransform);
-    big->planeZn[innerCaret + 0] = (vertex) {{ SU/3,  SU/3, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    big->planeZn[innerCaret + 1] = (vertex) {{ SU/3, -SU/3, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    big->planeZn[innerCaret + 2] = (vertex) {{-SU/3,  SU/3, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    big->planeZn[innerCaret + 3] = (vertex) {{-SU/3, -SU/3, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    cloneVertices(bigplaneZn, &innerCaret, block->planeZn, block->planeCount, ppnTransform);
+    cloneVertices(bigplaneZn, &innerCaret, block->planeZn, block->planeCount, cpnTransform);
+    cloneVertices(bigplaneZn, &innerCaret, block->planeZn, block->planeCount, npnTransform);
+    cloneVertices(bigplaneZn, &innerCaret, block->planeZn, block->planeCount, ncnTransform);
+    cloneVertices(bigplaneZn, &innerCaret, block->planeZn, block->planeCount, nnnTransform);
+    cloneVertices(bigplaneZn, &innerCaret, block->planeZn, block->planeCount, cnnTransform);
+    cloneVertices(bigplaneZn, &innerCaret, block->planeZn, block->planeCount, pnnTransform);
+    cloneVertices(bigplaneZn, &innerCaret, block->planeZn, block->planeCount, pcnTransform);
+    bigplaneZn[innerCaret++] = (vertex) {{ SU/3,  SU/3, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneZn[innerCaret++] = (vertex) {{ SU/3, -SU/3, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneZn[innerCaret++] = (vertex) {{-SU/3,  SU/3, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneZn[innerCaret++] = (vertex) {{-SU/3, -SU/3, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
 
     
 #ifdef DEBUG
     fprintf(instanceLog, "sides done\n");
 #endif
 
-    return big;
+    free(block->inner);
+    free(block->planeXp);
+    free(block->planeXn);
+    free(block->planeYp);
+    free(block->planeYn);
+    free(block->planeZp);
+    free(block->planeZn);
+
+    block->inner = biginner;
+    block->planeXp = bigplaneXp;
+    block->planeXn = bigplaneXn;
+    block->planeYp = bigplaneYp;
+    block->planeYn = bigplaneYn;
+    block->planeZp = bigplaneZp;
+    block->planeZn = bigplaneZn;
+
+    block->innerCount = biginnerCount;
+    block->planeCount = bigplaneCount;
+
 }
 
 
-float L2canonicValues[] = {SU, SU * 7/9, SU * 5/9, SU * 3/9, SU * 1/9, -SU * 1/9, -SU * 3/9, -SU * 5/9, -SU * 7/9, -SU};
-float epsilon = 0.0001f;
+#define SSMS_EPSILON 0.0001f
+void adjust(vertex* vertices, unsigned int count, int level) {
 
-void adjust(vertex* vertices, unsigned int count) {
+    // Create the array of canonical values
+    int divisor = 1;
+    for (int i = 0; i < level; divisor *= 3, i++);
+
+    float* canons = malloc((divisor + 1) * sizeof *canons);
+
+    int dividend = divisor;
+    for (int i = 0; i <= divisor; i++) {
+        canons[i] = SU * (dividend / divisor);
+        dividend -= 2;
+    }
+
+#ifdef DEBUG
+    fprintf(instanceLog, "Canonical values: \n");
+    for (int i = 0; i <= divisor; i++) {
+        fprintf(instanceLog, "%f\n", canons[i]);
+    }
+#endif
+
+    // Adjust all the vertices
     for (unsigned int i = 0; i < count; i++) {
         for (unsigned int dim = 0; dim < 3; dim++) {
-            for (int canon = 0; canon < 10; canon++) {
-                if (vertices[i].position[dim] < L2canonicValues[canon] + epsilon && vertices[i].position[dim] > L2canonicValues[canon] - epsilon) {
-                    vertices[i].position[dim] = L2canonicValues[canon];
+            for (int canon = 0; canon <= divisor; canon++) {
+                if (vertices[i].position[dim] < canons[canon] + SSMS_EPSILON && vertices[i].position[dim] > canons[canon] - SSMS_EPSILON) {
+                    vertices[i].position[dim] = canons[canon];
                 }
             }
         }
     }
+
 }
 
 
 vertex* flatten(replica* sponge) {
 
-    vertex* vtx = malloc((sponge->innerCount + sponge->outerCount + 6 * sponge->planeCount) * sizeof *(sponge->inner));
+    vertex* vtx = malloc((8 + sponge->innerCount + 6 * sponge->planeCount) * sizeof *(sponge->inner));
 
-    memcpy(vtx                                                                   , sponge->inner  , sponge->innerCount * sizeof *(sponge->inner));
-    memcpy(vtx + sponge->innerCount                                              , sponge->outer  , sponge->outerCount * sizeof *(sponge->inner));
-    memcpy(vtx + sponge->innerCount + sponge->outerCount                         , sponge->planeXp, sponge->planeCount * sizeof *(sponge->inner));
-    memcpy(vtx + sponge->innerCount + sponge->outerCount + sponge->planeCount    , sponge->planeXn, sponge->planeCount * sizeof *(sponge->inner));
-    memcpy(vtx + sponge->innerCount + sponge->outerCount + sponge->planeCount * 2, sponge->planeYp, sponge->planeCount * sizeof *(sponge->inner));
-    memcpy(vtx + sponge->innerCount + sponge->outerCount + sponge->planeCount * 3, sponge->planeYn, sponge->planeCount * sizeof *(sponge->inner));
-    memcpy(vtx + sponge->innerCount + sponge->outerCount + sponge->planeCount * 4, sponge->planeZp, sponge->planeCount * sizeof *(sponge->inner));
-    memcpy(vtx + sponge->innerCount + sponge->outerCount + sponge->planeCount * 5, sponge->planeZn, sponge->planeCount * sizeof *(sponge->inner));
+    memcpy(vtx                                                  , mengerL0_vtcs  , 8                  * sizeof *(sponge->inner));
+    memcpy(vtx + 8                                              , sponge->inner  , sponge->innerCount * sizeof *(sponge->inner));
+    memcpy(vtx + 8 + sponge->innerCount                         , sponge->planeXp, sponge->planeCount * sizeof *(sponge->inner));
+    memcpy(vtx + 8 + sponge->innerCount + sponge->planeCount    , sponge->planeXn, sponge->planeCount * sizeof *(sponge->inner));
+    memcpy(vtx + 8 + sponge->innerCount + sponge->planeCount * 2, sponge->planeYp, sponge->planeCount * sizeof *(sponge->inner));
+    memcpy(vtx + 8 + sponge->innerCount + sponge->planeCount * 3, sponge->planeYn, sponge->planeCount * sizeof *(sponge->inner));
+    memcpy(vtx + 8 + sponge->innerCount + sponge->planeCount * 4, sponge->planeZp, sponge->planeCount * sizeof *(sponge->inner));
+    memcpy(vtx + 8 + sponge->innerCount + sponge->planeCount * 5, sponge->planeZn, sponge->planeCount * sizeof *(sponge->inner));
+
+    free(sponge->inner);
+    free(sponge->planeXp);
+    free(sponge->planeXn);
+    free(sponge->planeYp);
+    free(sponge->planeYn);
+    free(sponge->planeZp);
+    free(sponge->planeZn);
+
 
     return vtx;
-}
-
-
-
-unsigned int buildL1vtcs(vertex** flatBuffer) {
-
-
-#ifdef DEBUG
-    fprintf(instanceLog, "Leveling up\n");
-#endif
-
-    replica* L1 = levelUp(&base);
-
-
-#ifdef DEBUG
-    fprintf(instanceLog, "Flattening\n");
-#endif
-
-    *flatBuffer = flatten(L1);
-
-#ifdef DEBUG
-    fprintf(instanceLog, "Returning\n");
-#endif
-
-    return L1->innerCount + L1->outerCount + 6 * L1->planeCount;
-}
-
-
-
-unsigned int buildL2vtcs(vertex** flatBuffer) {
-
-#ifdef DEBUG
-    fprintf(instanceLog, "Leveling up\n");
-#endif
-
-    replica* L1 = levelUp(&base);
-    
-#ifdef DEBUG
-    fprintf(instanceLog, "Leveling up\n");
-#endif
-
-    replica* L2 = levelUp(L1);
-
-#ifdef DEBUG
-    fprintf(instanceLog, "Flattening\n");
-#endif
-
-    *flatBuffer = flatten(L2);
-    
-
-#ifdef DEBUG
-    fprintf(instanceLog, "Adjusting\n");
-#endif
-
-    adjust(*flatBuffer, L2->innerCount + L2->outerCount + 6 * L2->planeCount);
-
-#ifdef DEBUG
-    fprintf(instanceLog, "Returning\n");
-#endif
-
-    return L2->innerCount + L2->outerCount + 6 * L2->planeCount;
 }
 
 
@@ -744,25 +707,43 @@ unsigned int buildL2vtcs(vertex** flatBuffer) {
 
 void buildShape(int spongeLevel) {
 
+
+    
     switch (spongeLevel) {
-        case 0:
-            currentShape = &mengerL0;
-            break;
-        case 1:
-            currentShape = &mengerL1;
+    case 0:
+        currentShape = &mengerL0;
+        break;
 
-            currentShape->vertexCount = buildL1vtcs(&(currentShape->vertices));
-            currentShape->vertexSize = currentShape->vertexCount * sizeof *(currentShape->vertices);
+    case 1:
+        currentShape = &mengerL1;
+        break;
 
-            break;
-        case 2:
-            currentShape = &mengerL2;
+    case 2:
+        currentShape = &mengerL2;
+        break;
+    }
 
-            currentShape->vertexCount = buildL2vtcs(&(currentShape->vertices));
-            currentShape->vertexSize = currentShape->vertexCount * sizeof *(currentShape->vertices);
+    // Write down the vertices
+    for (int i = 0; i < spongeLevel; levelUp(&base), i++);
 
-            break;
-        }
+    
+#ifdef DEBUG
+    fprintf(instanceLog, "Flattening\n");
+#endif
+
+    currentShape->vertices = flatten(&base);
+    currentShape->vertexCount = base.innerCount + 8 + 6 * base.planeCount;
+    currentShape->vertexSize = currentShape->vertexCount * sizeof *(currentShape->vertices);
+
+#ifdef DEBUG
+    fprintf(instanceLog, "Adjusting\n");
+#endif
+
+    adjust(currentShape->vertices, currentShape->vertexCount, spongeLevel);
+    
+#ifdef DEBUG
+    fprintf(instanceLog, "Flipping templates\n");
+#endif
 
     (*(currentShape->compileLayers))();
 
@@ -770,22 +751,18 @@ void buildShape(int spongeLevel) {
     fprintf(instanceLog, "Building index map\n");
 #endif
 
-    unsigned int* idxmap;
-    unsigned int mapcount;
 
-    buildIndexMap(currentShape->vertices, currentShape->vertexCount, currentShape->layers, currentShape->layerCount, &idxmap, &mapcount);
+    buildIndexMap(currentShape->vertices, currentShape->vertexCount, currentShape->layers, currentShape->layerCount, &(currentShape->indices), &(currentShape->indexCount));
 
 #ifdef DEBUG
-    fprintf(instanceLog, "Map built, size: %u\n", mapcount);
+    fprintf(instanceLog, "Map built, size: %u\n", currentShape->indexCount);
 
-    for (unsigned int i = 0; i < mapcount; i++){
-        fprintf(instanceLog, "%u\n", idxmap[i]);
+    for (unsigned int i = 0; i < currentShape->indexCount; i++){
+        fprintf(instanceLog, "%u\n", currentShape->indices[i]);
     }
 #endif
 
-    currentShape->indices = idxmap;
-    currentShape->indexSize = (mapcount) * sizeof *idxmap;
-    currentShape->indexCount = mapcount;
+    currentShape->indexSize = (currentShape->indexCount) * sizeof *(currentShape->indices);
 
 #ifdef DEBUG
     fprintf(instanceLog, "Shape: vtxbytes %u, idxbytes %u, idxcount %u\n", mengerL0.vertexSize, mengerL0.indexSize, mengerL0.indexCount);
