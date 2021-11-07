@@ -44,7 +44,7 @@ void GetScrConfig() {
     // DOWNCAST
     switch (RegQueryValueEx(rootKey, REGNAME_SPONGE_LEVEL, NULL, &regTypeSpongeLevel, (LPVOID) &spongeLevel, &slSize)) {
     case ERROR_SUCCESS:
-        if (regTypeSpongeLevel != REG_DWORD || spongeLevel < 1 || spongeLevel > 2) {
+        if (regTypeSpongeLevel != REG_DWORD || spongeLevel < 1 || spongeLevel > 3) {
             spongeLevel = 1;
         }
         break;
@@ -154,6 +154,9 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, L
         case 2:
             CheckRadioButton(hDlg, CTRL_SPONGE_LEVEL_1, CTRL_SPONGE_LEVEL_2, CTRL_SPONGE_LEVEL_2);
             break;
+        case 3:
+            CheckRadioButton(hDlg, CTRL_SPONGE_LEVEL_3, CTRL_SPONGE_LEVEL_3, CTRL_SPONGE_LEVEL_3);
+            break;
         }
         
         return TRUE;
@@ -167,6 +170,9 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, L
             return TRUE;
         case CTRL_SPONGE_LEVEL_2:
             spongeLevel = 2;
+            return TRUE;
+        case CTRL_SPONGE_LEVEL_3:
+            spongeLevel = 3;
             return TRUE;
         case IDOK:
             RegSetValueEx(rootKey, REGNAME_SPONGE_LEVEL, 0, REG_DWORD, (LPVOID) &spongeLevel, sizeof spongeLevel);

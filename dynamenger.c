@@ -114,11 +114,7 @@ void buildIndexMap(vertex* vertices, unsigned int vtxcount, layer** layers, unsi
     }
 
 #ifdef DEBUG
-    fprintf(instanceLog, "Prepared for index construction\nVertex count: %zu\nIndex map size: %u elements\nMirror array:\n", vtxcount, *indexMapCount);
-
-    for (unsigned int i = 0; i < vtxcount; i++) {
-        fprintf(instanceLog, "%u\n", mirror[i]);
-    }
+    fprintf(instanceLog, "Prepared for index construction\nVertex count: %u\nIndex map size: %u elements\n", vtxcount, *indexMapCount);
 #endif
 
     unsigned int idxcaret = 0;
@@ -130,9 +126,9 @@ void buildIndexMap(vertex* vertices, unsigned int vtxcount, layer** layers, unsi
         qsort_s(mirror, vtxcount, sizeof mirror[0], comparators[axis], vertices);
 
 #ifdef DEBUG
-        fprintf(instanceLog, "permutation sorted:\n");
+        fprintf(instanceLog, "Axis %u permutation:\nLog.  ->Phys.\n", axis);
         for (unsigned int i = 0; i < vtxcount; i++) {
-            fprintf(instanceLog, "%u\n", mirror[i]);
+            fprintf(instanceLog, "%5u -> %5u\n", i, mirror[i]);
         }
 #endif
 
@@ -170,6 +166,9 @@ void buildIndexMap(vertex* vertices, unsigned int vtxcount, layer** layers, unsi
 
 
 unsigned int* flipLayer(unsigned int* source, unsigned int size) {
+
+    if (size == 0) return NULL;
+
     unsigned int* clone = malloc(size * sizeof *clone);
 
     for (unsigned int i = 0; i < size; i++) {
@@ -386,11 +385,11 @@ void cloneVertices(vertex* dest, unsigned int* caret, vertex* plane, const unsig
     memcpy(dest + *caret, plane, count * sizeof *plane);
     for (unsigned int i = 0; i < count; i++) {
 #ifdef DEBUG
-        fprintf(instanceLog, "input: %f, %f, %f, %f\n", dest[*caret + i].position[0], dest[*caret + i].position[1], dest[*caret + i].position[2], dest[*caret + i].position[3]);
+        fprintf(instanceLog, "Vertex %5d: % f, % f, % f, % f", *caret + i, dest[*caret + i].position[0], dest[*caret + i].position[1], dest[*caret + i].position[2], dest[*caret + i].position[3]);
 #endif
         applyTransform(dest[*caret + i].position, transform);
 #ifdef DEBUG
-        fprintf(instanceLog, "trans: %f, %f, %f, %f\n", dest[*caret + i].position[0], dest[*caret + i].position[1], dest[*caret + i].position[2], dest[*caret + i].position[3]);
+        fprintf(instanceLog, " -> % f, % f, % f, % f\n", dest[*caret + i].position[0], dest[*caret + i].position[1], dest[*caret + i].position[2], dest[*caret + i].position[3]);
 #endif
     }
     *caret += count;
@@ -403,8 +402,8 @@ void levelUp(replica* block) {
     unsigned int bigplaneCount = block->planeCount * 8 + 4;
 
 #ifdef DEBUG
-    fprintf(instanceLog, "About to level up; expected vertex counts: %u outer + 6 * %u side + %u inner = %u total\n", bigouterCount, bigplaneCount, biginnerCount, bigouterCount + 6 * bigplaneCount + biginnerCount);
-    fprintf(instanceLog, "block addresses: %p %p %p %p %p %p %p %p\n", block->inner, block->planeXp, block->planeXn, block->planeYp, block->planeYn, block->planeZp, block->planeZn, block->outer);
+    fprintf(instanceLog, "About to level up; expected vertex counts: 8 outer + 6 * %u side + %u inner = %u total\n", bigplaneCount, biginnerCount, 8 + 6 * bigplaneCount + biginnerCount);
+    fprintf(instanceLog, "block addresses: %p %p %p %p %p %p %p\n", block->inner, block->planeXp, block->planeXn, block->planeYp, block->planeYn, block->planeZp, block->planeZn);
 #endif
 
     // Guaranteed not to invoke malloc(0), as the sizeof coefficients have an additive, positive constant
@@ -417,7 +416,7 @@ void levelUp(replica* block) {
     vertex* bigplaneZn = malloc(bigplaneCount * sizeof *(bigplaneZn));
 
 #ifdef DEBUG
-    fprintf(instanceLog, "clone addresses: %p %p %p %p %p %p %p %p\n", biginner, bigplaneXp, bigplaneXn, bigplaneYp, bigplaneYn, bigplaneZp, bigplaneZn, bigouter);
+    fprintf(instanceLog, "clone addresses: %p %p %p %p %p %p %p\n", biginner, bigplaneXp, bigplaneXn, bigplaneYp, bigplaneYn, bigplaneZp, bigplaneZn);
     
     fprintf(instanceLog, "buffers allocated\n");
 #endif
@@ -635,7 +634,7 @@ void levelUp(replica* block) {
 }
 
 
-#define SSMS_EPSILON 0.0001f
+#define SSMS_EPSILON 0.00001f
 void adjust(vertex* vertices, unsigned int count, int level) {
 
     // Create the array of canonical values
@@ -646,14 +645,14 @@ void adjust(vertex* vertices, unsigned int count, int level) {
 
     int dividend = divisor;
     for (int i = 0; i <= divisor; i++) {
-        canons[i] = SU * (dividend / divisor);
+        canons[i] = SU * ((float) dividend / divisor);
         dividend -= 2;
     }
 
 #ifdef DEBUG
     fprintf(instanceLog, "Canonical values: \n");
     for (int i = 0; i <= divisor; i++) {
-        fprintf(instanceLog, "%f\n", canons[i]);
+        fprintf(instanceLog, "% f\n", canons[i]);
     }
 #endif
 
@@ -720,6 +719,10 @@ void buildShape(int spongeLevel) {
 
     case 2:
         currentShape = &mengerL2;
+        break;
+
+    case 3:
+        currentShape = &mengerL3;
         break;
     }
 
