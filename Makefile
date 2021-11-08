@@ -3,12 +3,14 @@
 
 debug: resource.res vertex.h pixel.h
 	cl /nologo /W3 /std:c17 /c debug.c
+	cl /DDEBUG /nologo /W3 /std:c17 /c dynamenger.c
 	cl /DDEBUG /nologo /W3 /std:c17 /c graphics.c
-	cl /DDEBUG /nologo /W3 /std:c17 /Fe:ssms.scr resource.res main.c graphics.obj debug.obj
+	cl /DDEBUG /nologo /W3 /std:c17 /Fe:ssms.scr resource.res main.c graphics.obj dynamenger.obj debug.obj
 
 release: resource.res vertex.h pixel.h
+	cl /nologo /W3 /std:c17 /c dynamenger.c
 	cl /nologo /W3 /std:c17 /c graphics.c
-	cl /nologo /W3 /std:c17 /Fe:ssms.scr resource.res main.c graphics.obj
+	cl /nologo /W3 /std:c17 /Fe:ssms.scr resource.res main.c graphics.obj dynamenger.obj
 
 run:
 	ssms.scr /s

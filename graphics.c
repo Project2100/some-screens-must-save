@@ -15,6 +15,45 @@
 #include "vertex.h"
 #include "pixel.h"
 
+#include "dynamenger.h"
+
+
+
+// The world transforms struct, and the transforms
+typedef struct {
+    float orientMatrix[4][4];
+    float pointTranslateMatrix[4][4];
+    float rotateMatrix[4][4];
+    float translateMatrix[4][4];
+} transformMatrices;
+
+
+transformMatrices transforms = {
+    .orientMatrix = {
+        {1.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 1.0f},
+    },
+    .pointTranslateMatrix = {
+        {1.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 1.0f},
+    },
+    .rotateMatrix = {
+        {1.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 1.0f},
+    },
+    .translateMatrix = {
+        {1.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f, 0.3f},
+        {0.0f, 0.0f, 0.0f, 1.0f},
+    },
+};
 
 
 
@@ -54,7 +93,6 @@ D3D11_VIEWPORT viewport;
 
 
 
-
 // Axes orientation, observer's point of view:
 //
 // X: right
@@ -64,16 +102,11 @@ D3D11_VIEWPORT viewport;
 // Triangles that are counter-clockwise are culled by default
 
 
-// The struct that models a 3D RGBA vertex, along with the format description required by the Input Assembly stage
-typedef struct {
-    float x, y, z;
-    float colour[4];
-} vertex;
-
+// The vertex format description required by the Input Assembly stage; has to accurately match the vertex type
 D3D11_INPUT_ELEMENT_DESC vertexInputSpec[2] = {
     {
         .SemanticName = "POSITION",                         // The HLSL semantic associated with this element in a shader input-signature
-        .Format = DXGI_FORMAT_R32G32B32_FLOAT,              // The data type of the element data
+        .Format = DXGI_FORMAT_R32G32B32A32_FLOAT,              // The data type of the element data
         .AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT,  // Offset (in bytes) from the start of the vertex
         .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA       // Identifies the input data class for a single input slot
     },
@@ -84,74 +117,6 @@ D3D11_INPUT_ELEMENT_DESC vertexInputSpec[2] = {
         .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA
     }
 };
-
-#include "mengerL1.h"
-#include "mengerL2.h"
-
-struct shape_impl {
-    vertex* vertices;
-    unsigned int* indices;
-    UINT vertexSize;
-    UINT indexSize;
-    UINT indexCount;
-};
-
-shape mengerL1 = {
-    .vertices = mengerL1_vtcs,
-    .indices = mengerL1_idcs,
-    .vertexSize = sizeof mengerL1_vtcs,
-    .indexSize = sizeof mengerL1_idcs,
-    .indexCount = sizeof mengerL1_idcs / sizeof (unsigned int),
-};
-
-shape mengerL2 = {
-    .vertices = mengerL2_vtcs,
-    .indices = mengerL2_idcs,
-    .vertexSize = sizeof mengerL2_vtcs,
-    .indexSize = sizeof mengerL2_idcs,
-    .indexCount = sizeof mengerL2_idcs / sizeof (unsigned int),
-};
-
-
-shape* currentShape;
-
-
-// The world transforms struct, and the transforms
-typedef struct {
-    float orientMatrix[4][4];
-    float pointTranslateMatrix[4][4];
-    float rotateMatrix[4][4];
-    float translateMatrix[4][4];
-} transformMatrices;
-
-
-transformMatrices transforms = {
-    .orientMatrix = {
-        {1.0f, 0.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 0.0f, 1.0f},
-    },
-    .pointTranslateMatrix = {
-        {1.0f, 0.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 0.0f, 1.0f},
-    },
-    .rotateMatrix = {
-        {1.0f, 0.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 0.0f, 1.0f},
-    },
-    .translateMatrix = {
-        {1.0f, 0.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f, 0.3f},
-        {0.0f, 0.0f, 0.0f, 1.0f},
-    },
-};
-
 
 
 
