@@ -196,6 +196,7 @@ void InitD3D(HWND windowHandle) {
     HRESULT code;
 
 
+
     //---------------------------------------------------------------
     // Build D3D11 Infrastructure
 
@@ -269,7 +270,6 @@ void InitD3D(HWND windowHandle) {
     }
     fprintf(instanceLog, "Debug queue acquired: code %lx\n", code);
 #endif
-
 
 
 
@@ -352,7 +352,6 @@ void InitD3D(HWND windowHandle) {
 
 
 
-
     //---------------------------------------------------------------
     // Setting up the viewport
 
@@ -360,10 +359,8 @@ void InitD3D(HWND windowHandle) {
 
 
 
-
     //---------------------------------------------------------------
     // Setting shader objects
-
     
     code = graphicsDevice->lpVtbl->CreateVertexShader(graphicsDevice, g_VShader, sizeof g_VShader, NULL, &vertexShader);
 #ifdef DEBUG
@@ -384,7 +381,6 @@ void InitD3D(HWND windowHandle) {
     fprintf(instanceLog, "Pixel shader created: code %lx\n", code);
 #endif
     graphicsPipeline->lpVtbl->PSSetShader(graphicsPipeline, pixelShader, NULL, 0);
-
 
 
 
@@ -413,7 +409,6 @@ void InitD3D(HWND windowHandle) {
     fprintf(instanceLog, "Rasterizer set: code %lx\n", code);
 #endif
     graphicsPipeline->lpVtbl->RSSetState(graphicsPipeline, rasterizerState);
-
 
 
 
@@ -457,7 +452,6 @@ void InitD3D(HWND windowHandle) {
 
 
 
-
     //---------------------------------------------------------------
     // Input specification
 
@@ -473,7 +467,6 @@ void InitD3D(HWND windowHandle) {
     graphicsPipeline->lpVtbl->IASetInputLayout(graphicsPipeline, inputLayout);
 
     graphicsPipeline->lpVtbl->IASetPrimitiveTopology(graphicsPipeline, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
 
 
 

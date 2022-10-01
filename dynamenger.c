@@ -15,27 +15,26 @@
 
 
 
-
 // D3D11 GEOMETRY REMINDERS:
 //
-// DEFAULT POV: "ZPOV"
-// X axis: left to right
-// Y axis down to up
-// Z axis: back to forth
-//
-// Left hand rule: x-middle, y-thumb, z-index
+// Defalut Point-Of-View: "ZPOV" - "Left hand rule"
+// X axis (0): left to right
+// Y axis (1): bottom to top
+// Z axis (2): back to front
 //
 // triangle front face has clockwise vertices
-//
-// 0: X
-// 1: Y
-// 2: Z
 
 
 shape* currentShape;
 
 
-// The sort comparators, one for each axis. Currently sorting from negative to positive
+// The sort comparators, one for each axis
+//
+// Sorting done from negative coordinates to positive coordinates; e.g. for ZPOV, in descending priority:
+// 1. back to front
+// 2. bottom to top
+// 3. left to right
+
 int xpovCompare (void* context, const void* a, const void* b) {
     
     if (((vertex*) context)[*(unsigned int*) a].position[0] > ((vertex*) context)[*(unsigned int*) b].position[0]) return 1;
@@ -82,24 +81,23 @@ int (*comparators[3])(void*, const void*, const void*) = {xpovCompare, ypovCompa
 
 
 
-
-// POV is through the selected axis, facing forward
-// Vertices are sorted in arabic reading order (right-to-left, top-to-bottom)
-// Get the vertices on the current layer
-
-// Rationale: get all the vertices on current layer, unordered. Then, use qsort with the right comparator
-
-// Exclude vertices out of the current layer
-
-// "Left hand rule"
-// ZPOV: positive Y is up, positive X is right
-
+// This function builds the whole index map of a shape
+//
+// 1. From the vertex list, create a bijection that maps them in the original order to another where they are sorted by one of the three comparators
+// This ordering effectively groups the vertices layer by layer across the sorting axis with highest-priority
+// By knowing the vertex count into each layer, layer-by-layer operations can be done safely
+//
+// 2. Once the sorting map is ready, each index will be saved in the full map by taking the corresponding index in the template of the current layer,
+// offsetting it by the previous completed layers, and then reverse-mapping it through the serting map
+//
 // CAUTION: layers is an array of pointers, fullindexmap is a pointer to an array!
 //
 // NOTE: is it possible to enforce const on vertices without warnings on qsort?
+// This is probably indicating that there is an alternate approach that does not rely on the context argument...
 void buildIndexMap(vertex* vertices, unsigned int vtxcount, layer** layers, unsigned int layerCount, unsigned int** fullIndexMap, unsigned int* indexMapCount) {
 
-    // Compute the index map total size: sum all the layer counts, then multiply by the three axes. Then, allocate the index map
+    // Allocate the index map
+    // Map size: #axes * sum(layerIndexCounts)
     *indexMapCount = 0;
     for (unsigned int layerIdx = 0; layerIdx < layerCount; layerIdx++) {
         *indexMapCount += layers[layerIdx]->idxCount;
@@ -107,48 +105,46 @@ void buildIndexMap(vertex* vertices, unsigned int vtxcount, layer** layers, unsi
     *indexMapCount *= 3;
     *fullIndexMap = calloc(*indexMapCount, sizeof **fullIndexMap);
     
-    // Create an array that permutes the vertex order in memory with a sorted order by point of view
-    unsigned int* mirror = malloc(vtxcount * sizeof *mirror);
+    // Allocate and prepare the array for the sorting bijection
+    unsigned int* sortingMap = malloc(vtxcount * sizeof *sortingMap);
     for (unsigned int i = 0; i < vtxcount; i++) {
-        mirror[i] = i;
+        sortingMap[i] = i;
     }
 
 #ifdef DEBUG
     fprintf(instanceLog, "Prepared for index construction\nVertex count: %u\nIndex map size: %u elements\n", vtxcount, *indexMapCount);
 #endif
 
+
     unsigned int idxcaret = 0;
 
-    // For each of the three axes
     for (unsigned int axis = 0; axis < 3; axis++) {
 
-        // Construct the idx permutation by sorting the mirroring array with the right comparator
-        qsort_s(mirror, vtxcount, sizeof mirror[0], comparators[axis], vertices);
-
+        // Set the sorting map
+        qsort_s(sortingMap, vtxcount, sizeof *sortingMap, comparators[axis], vertices);
 #ifdef DEBUG
         fprintf(instanceLog, "Axis %u permutation:\nLog.  ->Phys.\n", axis);
         for (unsigned int i = 0; i < vtxcount; i++) {
-            fprintf(instanceLog, "%5u -> %5u\n", i, mirror[i]);
+            fprintf(instanceLog, "%5u -> %5u\n", i, sortingMap[i]);
         }
 #endif
 
         unsigned int vtxcaret = 0;
 
-        // POV permutation is ready; for each layer...
         for (unsigned int layerIdx = 0; layerIdx < layerCount; layerIdx++) {
 
 #ifdef DEBUG
             fprintf(instanceLog, "Building layer %u\n", layerIdx);
 #endif
-            // ... and for each index in the layer template...
-            for (unsigned int i = 0; i < layers[layerIdx]->idxCount; i++, idxcaret++) {
 
+            for (unsigned int i = 0; i < layers[layerIdx]->idxCount; i++, idxcaret++) {
+                
 #ifdef DEBUG
                 fprintf(instanceLog, "Writing index %u, should be mapped in position %u + layers[%u]->indexmap[%u]\n", idxcaret, vtxcaret, layerIdx, i);
                 fprintf(instanceLog, "Index in template: %u\n", layers[layerIdx]->indexmap[i]);
 #endif
-                // ....apply the magic
-                (*fullIndexMap)[idxcaret] = mirror[vtxcaret + layers[layerIdx]->indexmap[i]];
+                // This is actually step 2 into practice
+                (*fullIndexMap)[idxcaret] = sortingMap[vtxcaret + layers[layerIdx]->indexmap[i]];
 
 #ifdef DEBUG
                 fprintf(instanceLog, "Index %u written, result: %u\n", idxcaret, (*fullIndexMap)[idxcaret]);
@@ -161,46 +157,28 @@ void buildIndexMap(vertex* vertices, unsigned int vtxcount, layer** layers, unsi
         
     }
 
-    free(mirror);
+    free(sortingMap);
 }
 
-
+// This allocates a copy of the input layer, with the visible side as the opposite one
+//
+// This is accomplished by swapping two of the three vertices of all the tringles composing the layer
+// This swappping action changes the triangles' index order from clockwise to counter-clockwise, hence "flipping" the visible side of all triangles making the layer
 unsigned int* flipLayer(unsigned int* source, unsigned int size) {
 
     if (size == 0) return NULL;
 
     unsigned int* clone = malloc(size * sizeof *clone);
-
-    for (unsigned int i = 0; i < size; i++) {
-        switch (i % 3) {
-            case 0:
-            clone[i] = source[i];
-            break;
-            case 1:
-            clone[i+1] = source[i];
-            break;
-            case 2:
-            clone[i-1] = source[i];
-            break;
-        }
+    for (unsigned int i = 0; i < size; i+=3) {
+        clone[i] = source[i];
+        clone[i+2] = source[i+1];
+        clone[i+1] = source[i+2];
     }
-
     return clone;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+// NOTE: The layers have been designed such that vertices are sorted in arabic reading order (right-to-left, top-to-bottom)
+// Nevertheless, this isn't posing problems with the current logic, as the layers themselves are highly symmetric
 
 
 #include "mengerL0.h"
@@ -218,6 +196,9 @@ unsigned int* flipLayer(unsigned int* source, unsigned int size) {
 ////////////////////////////////////////////////////////////////////////////
 
 
+
+
+// Local structure that holds the vertices of a Menger sponge of a given level, grouped by location (either internal, or on a sponge's outermost side)
 typedef struct {
     vertex* inner;
     vertex* planeXp;
@@ -232,7 +213,6 @@ typedef struct {
 } replica;
 
 
-replica base = {0};
 
 
 float pppTransform[4][4] = {
@@ -697,6 +677,7 @@ vertex* flatten(replica* sponge) {
 
 
 
+
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 ///////////////////////////BUILDER//////////////////////////////////////////
@@ -704,10 +685,10 @@ vertex* flatten(replica* sponge) {
 ////////////////////////////////////////////////////////////////////////////
 
 
+
+
 void buildShape(int spongeLevel) {
 
-
-    
     switch (spongeLevel) {
     case 0:
         currentShape = &mengerL0;
@@ -725,14 +706,15 @@ void buildShape(int spongeLevel) {
         currentShape = &mengerL3;
         break;
     }
-
-    // Write down the vertices
+    
+    // Build the vertex set by applying the constructive iteration method of a Menger sponge
+    replica base = {0};
     for (int i = 0; i < spongeLevel; levelUp(&base), i++);
-
     
 #ifdef DEBUG
     fprintf(instanceLog, "Flattening\n");
 #endif
+
 
     currentShape->vertices = flatten(&base);
     currentShape->vertexCount = base.innerCount + 8 + 6 * base.planeCount;
@@ -771,5 +753,3 @@ void buildShape(int spongeLevel) {
     fprintf(instanceLog, "Shape: vtxbytes %u, idxbytes %u, idxcount %u\n", mengerL0.vertexSize, mengerL0.indexSize, mengerL0.indexCount);
 #endif
 }
-
-

@@ -19,7 +19,7 @@ config:
 	ssms.scr /c
 
 clean:
-	rm -f ssms.scr *.res *.obj *.pdb *.log vertex.h pixel.h
+	del /Q ssms.scr *.res *.obj *.pdb *.log vertex.h pixel.h
 
 resource.res: resource.rc controls.h
 	rc /nologo /n resource.rc
