@@ -483,12 +483,12 @@ void InitD3D(HWND windowHandle) {
 
     // VERTICES
     vBufferSpec = (D3D11_BUFFER_DESC) {
-        .ByteWidth      = currentShape->vertexSize,             // The byte size of the vertex buffer
-        .BindFlags      = D3D11_BIND_VERTEX_BUFFER, // use as a vertex buffer
+        .ByteWidth      = spongeData->vertexCount * sizeof *(spongeData->vertices),     // The byte size of the vertex buffer
+        .BindFlags      = D3D11_BIND_VERTEX_BUFFER,                                     // use as a vertex buffer
         .Usage          = D3D11_USAGE_DEFAULT,
     };
     vInitData = (D3D11_SUBRESOURCE_DATA) {
-        .pSysMem = currentShape->vertices,
+        .pSysMem = spongeData->vertices,
         .SysMemPitch = 0,
         .SysMemSlicePitch = 0,
     };
@@ -500,19 +500,19 @@ void InitD3D(HWND windowHandle) {
     }
     fprintf(instanceLog, "Vertex buffer created: code %lx\n", code);
 #endif
-    stride = sizeof (vertex);
+    stride = sizeof *(spongeData->vertices);
     offset = 0;
     graphicsPipeline->lpVtbl->IASetVertexBuffers(graphicsPipeline, 0, 1, &shapeBuffer, &stride, &offset);
 
     
     // INDICES
     iBufferDesc = (D3D11_BUFFER_DESC) {
-        .ByteWidth       = currentShape->indexSize,
+        .ByteWidth       = spongeData->indexCount * sizeof *(spongeData->indices),
         .BindFlags       = D3D11_BIND_INDEX_BUFFER,
         .Usage           = D3D11_USAGE_DEFAULT,
     };
     iInitData = (D3D11_SUBRESOURCE_DATA) {
-        .pSysMem = currentShape->indices,
+        .pSysMem = spongeData->indices,
         .SysMemPitch = 0,
         .SysMemSlicePitch = 0,
     };
@@ -643,7 +643,7 @@ void CALLBACK RenderFrame(HWND window, UINT a, UINT_PTR b, DWORD c) {
 
 
     // draw the vertex buffer to the back buffer
-    graphicsPipeline->lpVtbl->DrawIndexed(graphicsPipeline, currentShape->indexCount, 0, 0);
+    graphicsPipeline->lpVtbl->DrawIndexed(graphicsPipeline, spongeData->indexCount, 0, 0);
 
     // switch the back buffer and the front buffer
     // MSDN: Presents a rendered image to the user.

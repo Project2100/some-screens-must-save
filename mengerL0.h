@@ -1,15 +1,3 @@
-vertex mengerL0_vtcs[] = {
-    {{ SU,  SU, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
-    {{ SU, -SU, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
-    {{-SU,  SU, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
-    {{-SU, -SU, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
-    {{ SU,  SU,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
-    {{ SU, -SU,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
-    {{-SU,  SU,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
-    {{-SU, -SU,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
-};
-
-
 layer* L0_layers[2] = {
     &((layer){
         .vtxcount = 4,
@@ -25,10 +13,8 @@ layer* L0_layers[2] = {
 
 void L0_completeLayers() {}
 
-shape mengerL0 = {
-    .vertices = mengerL0_vtcs,
-    .vertexSize = sizeof mengerL0_vtcs,
-    .vertexCount = sizeof mengerL0_vtcs / sizeof mengerL0_vtcs[0],
+
+layerInfo mengerL0 = {
     .layers = L0_layers,
     .layerCount = sizeof L0_layers / sizeof L0_layers[0],
     .compileLayers = &L0_completeLayers

@@ -23,7 +23,7 @@ void L1_completeLayers() {
 
 
 #define LAYER_COUNT 4
-shape mengerL1 = {
+layerInfo mengerL1 = {
     .layerCount = LAYER_COUNT,
     .layers = (layer*[LAYER_COUNT]) {
         L1_templates,

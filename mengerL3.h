@@ -286,7 +286,7 @@ void L3_completeLayers() {
 
 
 #define LAYER_COUNT 28
-shape mengerL3 = {
+layerInfo mengerL3 = {
     .layerCount = LAYER_COUNT,
     .layers = (layer*[LAYER_COUNT]) {
         L3_templates,

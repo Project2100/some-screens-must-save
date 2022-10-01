@@ -3,7 +3,10 @@
 
 #include "debug.h"
 
-
+// Tolerance factor for vertex adjustment
+#define SSMS_EPSILON 0.00001f
+// Unit shorthand for vertex maps
+#define SU SIDE_UNIT
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -12,6 +15,20 @@
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
+
+
+// The data structure for a "layer": a layer models the vertices and triangles that occur on a common, orthogonal 2D plane
+typedef struct {
+    unsigned int vtxcount;
+    unsigned int idxCount;
+    unsigned int* indexmap;
+} layer;
+
+typedef struct {
+    layer** layers;
+    unsigned int layerCount;
+    void (*compileLayers)();
+} layerInfo;
 
 
 
@@ -25,7 +42,7 @@
 // triangle front face has clockwise vertices
 
 
-shape* currentShape;
+shape* spongeData;
 
 
 // The sort comparators, one for each axis
@@ -198,6 +215,9 @@ unsigned int* flipLayer(unsigned int* source, unsigned int size) {
 
 
 
+
+
+
 // Local structure that holds the vertices of a Menger sponge of a given level, grouped by location (either internal, or on a sponge's outermost side)
 typedef struct {
     vertex* inner;
@@ -211,7 +231,6 @@ typedef struct {
     unsigned int planeCount;
 
 } replica;
-
 
 
 
@@ -264,8 +283,6 @@ float nnnTransform[4][4] = {
     {0, 0, 1.f/3, 0},
     {-2.f/3 * SU, -2.f/3 * SU, -2.f/3 * SU, 1},
 };
-
-
 
 float cppTransform[4][4] = {
     {1.f/3, 0, 0, 0},
@@ -343,6 +360,7 @@ float nncTransform[4][4] = {
 };
 
 
+
 void applyTransform(float* vector, float transform[4][4]) {
 
     float x = vector[0] * transform[0][0] + vector[1] * transform[1][0] + vector[2] * transform[2][0] + vector[3] * transform[3][0]; 
@@ -387,13 +405,13 @@ void levelUp(replica* block) {
 #endif
 
     // Guaranteed not to invoke malloc(0), as the sizeof coefficients have an additive, positive constant
-    vertex* biginner = malloc(biginnerCount * sizeof *(biginner));
-    vertex* bigplaneXp = malloc(bigplaneCount * sizeof *(bigplaneXp));
-    vertex* bigplaneXn = malloc(bigplaneCount * sizeof *(bigplaneXn));
-    vertex* bigplaneYp = malloc(bigplaneCount * sizeof *(bigplaneYp));
-    vertex* bigplaneYn = malloc(bigplaneCount * sizeof *(bigplaneYn));
-    vertex* bigplaneZp = malloc(bigplaneCount * sizeof *(bigplaneZp));
-    vertex* bigplaneZn = malloc(bigplaneCount * sizeof *(bigplaneZn));
+    vertex* biginner   = malloc(biginnerCount * sizeof *biginner);
+    vertex* bigplaneXp = malloc(bigplaneCount * sizeof *bigplaneXp);
+    vertex* bigplaneXn = malloc(bigplaneCount * sizeof *bigplaneXn);
+    vertex* bigplaneYp = malloc(bigplaneCount * sizeof *bigplaneYp);
+    vertex* bigplaneYn = malloc(bigplaneCount * sizeof *bigplaneYn);
+    vertex* bigplaneZp = malloc(bigplaneCount * sizeof *bigplaneZp);
+    vertex* bigplaneZn = malloc(bigplaneCount * sizeof *bigplaneZn);
 
 #ifdef DEBUG
     fprintf(instanceLog, "clone addresses: %p %p %p %p %p %p %p\n", biginner, bigplaneXp, bigplaneXn, bigplaneYp, bigplaneYn, bigplaneZp, bigplaneZn);
@@ -600,7 +618,7 @@ void levelUp(replica* block) {
     free(block->planeZp);
     free(block->planeZn);
 
-    block->inner = biginner;
+    block->inner   = biginner;
     block->planeXp = bigplaneXp;
     block->planeXn = bigplaneXn;
     block->planeYp = bigplaneYp;
@@ -614,7 +632,6 @@ void levelUp(replica* block) {
 }
 
 
-#define SSMS_EPSILON 0.00001f
 void adjust(vertex* vertices, unsigned int count, int level) {
 
     // Create the array of canonical values
@@ -651,10 +668,21 @@ void adjust(vertex* vertices, unsigned int count, int level) {
 
 
 vertex* flatten(replica* sponge) {
+    
+    vertex cubeVtcs[] = {
+        {{ SU,  SU, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
+        {{ SU, -SU, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
+        {{-SU,  SU, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
+        {{-SU, -SU, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
+        {{ SU,  SU,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
+        {{ SU, -SU,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
+        {{-SU,  SU,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
+        {{-SU, -SU,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
+    };
 
     vertex* vtx = malloc((8 + sponge->innerCount + 6 * sponge->planeCount) * sizeof *(sponge->inner));
 
-    memcpy(vtx                                                  , mengerL0_vtcs  , 8                  * sizeof *(sponge->inner));
+    memcpy(vtx                                                  , cubeVtcs       , 8                  * sizeof *(sponge->inner));
     memcpy(vtx + 8                                              , sponge->inner  , sponge->innerCount * sizeof *(sponge->inner));
     memcpy(vtx + 8 + sponge->innerCount                         , sponge->planeXp, sponge->planeCount * sizeof *(sponge->inner));
     memcpy(vtx + 8 + sponge->innerCount + sponge->planeCount    , sponge->planeXn, sponge->planeCount * sizeof *(sponge->inner));
@@ -688,68 +716,73 @@ vertex* flatten(replica* sponge) {
 
 
 void buildShape(int spongeLevel) {
-
-    switch (spongeLevel) {
-    case 0:
-        currentShape = &mengerL0;
-        break;
-
-    case 1:
-        currentShape = &mengerL1;
-        break;
-
-    case 2:
-        currentShape = &mengerL2;
-        break;
-
-    case 3:
-        currentShape = &mengerL3;
-        break;
-    }
     
+    spongeData = calloc(1, sizeof *spongeData);
+
+    // VERTEX GENERATION
+
     // Build the vertex set by applying the constructive iteration method of a Menger sponge
+    // NOTE: This does not actually add the 8 corners of the bounding cube, which is done by "flatten"
     replica base = {0};
     for (int i = 0; i < spongeLevel; levelUp(&base), i++);
     
 #ifdef DEBUG
-    fprintf(instanceLog, "Flattening\n");
+    fprintf(instanceLog, "Flattening internal vertex list, and adding the 8 cube corners\n");
 #endif
 
-
-    currentShape->vertices = flatten(&base);
-    currentShape->vertexCount = base.innerCount + 8 + 6 * base.planeCount;
-    currentShape->vertexSize = currentShape->vertexCount * sizeof *(currentShape->vertices);
+    spongeData->vertices = flatten(&base);
+    spongeData->vertexCount = base.innerCount + 8 + 6 * base.planeCount;
 
 #ifdef DEBUG
-    fprintf(instanceLog, "Adjusting\n");
+    fprintf(instanceLog, "Adjusting vertex coordinates\n");
 #endif
 
-    adjust(currentShape->vertices, currentShape->vertexCount, spongeLevel);
-    
+    adjust(spongeData->vertices, spongeData->vertexCount, spongeLevel);
+
+
+    // INDEX MAP GENERATION
+
+    layerInfo* layerData;
+
+    switch (spongeLevel) {
+    case 0:
+        layerData = &mengerL0;
+        break;
+
+    case 1:
+        layerData = &mengerL1;
+        break;
+
+    case 2:
+        layerData = &mengerL2;
+        break;
+
+    case 3:
+        layerData = &mengerL3;
+        break;
+    }
+
 #ifdef DEBUG
     fprintf(instanceLog, "Flipping templates\n");
 #endif
 
-    (*(currentShape->compileLayers))();
+    (*(layerData->compileLayers))();
 
 #ifdef DEBUG
     fprintf(instanceLog, "Building index map\n");
 #endif
 
-
-    buildIndexMap(currentShape->vertices, currentShape->vertexCount, currentShape->layers, currentShape->layerCount, &(currentShape->indices), &(currentShape->indexCount));
+    buildIndexMap(spongeData->vertices, spongeData->vertexCount, layerData->layers, layerData->layerCount, &(spongeData->indices), &(spongeData->indexCount));
 
 #ifdef DEBUG
-    fprintf(instanceLog, "Map built, size: %u\n", currentShape->indexCount);
+    fprintf(instanceLog, "Map built, size: %u\n", spongeData->indexCount);
 
-    for (unsigned int i = 0; i < currentShape->indexCount; i++){
-        fprintf(instanceLog, "%u\n", currentShape->indices[i]);
+    for (unsigned int i = 0; i < spongeData->indexCount; i++){
+        fprintf(instanceLog, "%u\n", spongeData->indices[i]);
     }
 #endif
 
-    currentShape->indexSize = (currentShape->indexCount) * sizeof *(currentShape->indices);
-
 #ifdef DEBUG
-    fprintf(instanceLog, "Shape: vtxbytes %u, idxbytes %u, idxcount %u\n", mengerL0.vertexSize, mengerL0.indexSize, mengerL0.indexCount);
+    fprintf(instanceLog, "Shape: vtxbytes %u, idxbytes %u, idxcount %u\n", spongeData.vertexSize, spongeData.indexSize, spongeData.indexCount);
 #endif
 }

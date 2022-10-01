@@ -15,5 +15,3 @@ void resizeD3D(int width, int height);
 void CALLBACK RenderFrame(HWND window, UINT message, UINT_PTR timerID, DWORD currentTime);
 
 void CleanD3D();
-
-void buildShape();

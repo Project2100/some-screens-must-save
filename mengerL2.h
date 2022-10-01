@@ -51,7 +51,7 @@ void L2_completeLayers() {
 
 
 #define LAYER_COUNT 10
-shape mengerL2 = {
+layerInfo mengerL2 = {
     .layerCount = LAYER_COUNT,
     .layers = (layer*[LAYER_COUNT]) {
         L2_templates,
