@@ -149,7 +149,7 @@ LRESULT WINAPI ScreenSaverProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 
 
 
-// NOTE: when invoking ssms /c, the exit code will be the one given to th EndDialog function
+// NOTE: when invoking ssms /c, the exit code will be the one given to the EndDialog function
 BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
     (void) lParam;
 

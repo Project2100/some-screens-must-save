@@ -1,4 +1,3 @@
-
 // Microsoft being picky on standard C
 #define _CRT_SECURE_NO_WARNINGS
 
