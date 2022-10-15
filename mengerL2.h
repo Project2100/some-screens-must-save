@@ -1,4 +1,7 @@
-layer L2_templates[4] = {
+#define LCL2 LAYER_UP(LCL1)
+#define TCL2 4
+
+layer L2_templates[TCL2] = {
     {
         .vtxcount = 40,
         .idxCount = 3 * 28,
@@ -38,11 +41,11 @@ layer L2_templates[4] = {
     }
 };
 
-layer L2_templates_flipped[4] = {0};
+layer L2_templates_flipped[TCL2] = {0};
 
 void L2_completeLayers() {
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < TCL2; i++) {
         L2_templates_flipped[i] = L2_templates[i];
         L2_templates_flipped[i].indexmap = flipLayer(L2_templates[i].indexmap, L2_templates[i].idxCount);
     }
@@ -50,21 +53,25 @@ void L2_completeLayers() {
 }
 
 
-#define LAYER_COUNT 10
 layerInfo mengerL2 = {
-    .layerCount = LAYER_COUNT,
-    .layers = (layer*[LAYER_COUNT]) {
+    .layerCount = LCL2,
+    .layers = (layer*[LCL2]) {
         L2_templates,
+
         L2_templates_flipped + 1,
         L2_templates + 1,
+
         L2_templates_flipped + 2,
+
         L2_templates_flipped + 3,
         L2_templates + 3,
+
         L2_templates + 2,
+
         L2_templates_flipped + 1,
         L2_templates + 1,
+        
         L2_templates_flipped
     },
     .compileLayers = &L2_completeLayers
 };
-#undef LAYER_COUNT

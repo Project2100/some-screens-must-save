@@ -201,6 +201,7 @@ unsigned int* flipLayer(unsigned int* source, unsigned int size) {
 // Nevertheless, this isn't posing problems with the current logic, as the layers themselves are highly symmetric
 
 
+#define LAYER_UP(a) ((a) + 2 * ((a) - 1))
 #include "mengerL0.h"
 #include "mengerL1.h"
 #include "mengerL2.h"

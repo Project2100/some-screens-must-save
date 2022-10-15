@@ -1,4 +1,7 @@
-layer L1_templates[2] = {
+#define LCL1 LAYER_UP(LCL0)
+#define TCL1 2
+
+layer L1_templates[TCL1] = {
     {
         .vtxcount = 8,
         .idxCount = 3 * 8,
@@ -11,26 +14,27 @@ layer L1_templates[2] = {
     }
 };
 
-layer L1_templates_flipped[2] = {0};
+layer L1_templates_flipped[TCL1] = {0};
 
 void L1_completeLayers() {
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < TCL1; i++) {
         L1_templates_flipped[i] = L1_templates[i];
         L1_templates_flipped[i].indexmap = flipLayer(L1_templates[i].indexmap, L1_templates[i].idxCount);
     }
+
 }
 
 
-#define LAYER_COUNT 4
 layerInfo mengerL1 = {
-    .layerCount = LAYER_COUNT,
-    .layers = (layer*[LAYER_COUNT]) {
+    .layerCount = LCL1,
+    .layers = (layer*[LCL1]) {
         L1_templates,
+
         L1_templates_flipped + 1,
         L1_templates + 1,
+        
         L1_templates_flipped
     },
     .compileLayers = &L1_completeLayers
 };
-#undef LAYER_COUNT
