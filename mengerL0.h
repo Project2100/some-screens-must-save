@@ -1,21 +1,20 @@
 #define LCL0 2
 
-void L0_completeLayers() {}
 
-
-layerInfo mengerL0 = {
+IndexingKit mengerL0 = {
     .layerCount = LCL0,
-    .layers = (layer*[LCL0]){
-        &((layer){
+    .templates = NULL,
+    .templatesFlipped = NULL,
+    .templateSequence = (Layer*[LCL0]){
+        &((Layer){
             .vtxcount = 4,
             .idxCount = 3 * 2,
             .indexmap = ((unsigned int[3 * 2]) {0, 2, 1, 1, 2, 3}), // Negative layer - counter
         }),
-        &((layer){
+        &((Layer){
             .vtxcount = 4,
             .idxCount = 3 * 2,
             .indexmap = ((unsigned int[3 * 2]) {0, 1, 2, 1, 3, 2}), // Positive layer - clock
         }),
     },
-    .compileLayers = &L0_completeLayers
 };

@@ -233,7 +233,7 @@ void InitD3D(HWND windowHandle) {
 #ifdef DEBUG
             D3D11_CREATE_DEVICE_SINGLETHREADED | D3D11_CREATE_DEVICE_DEBUG, // ORable flags for rendering levels - Debug flagenables the InfoQueue messages
 #else
-            D3D11_CREATE_DEVICE_SINGLETHREADED, // ORable flags for rendering levels - Debug flag enables the InfoQueue messages
+            D3D11_CREATE_DEVICE_SINGLETHREADED,
 #endif
             NULL,                       // An array of feature level requests, sorted by desirability; NULL is equivalent to a version list sorted by most recent (D3D11)
             0,                          // Size of the previous array
@@ -483,12 +483,12 @@ void InitD3D(HWND windowHandle) {
 
     // VERTICES
     vBufferSpec = (D3D11_BUFFER_DESC) {
-        .ByteWidth      = spongeData->vertexCount * sizeof *(spongeData->vertices),     // The byte size of the vertex buffer
+        .ByteWidth      = sponge->vertexCount * sizeof *(sponge->vertices),     // The byte size of the vertex buffer
         .BindFlags      = D3D11_BIND_VERTEX_BUFFER,                                     // use as a vertex buffer
         .Usage          = D3D11_USAGE_DEFAULT,
     };
     vInitData = (D3D11_SUBRESOURCE_DATA) {
-        .pSysMem = spongeData->vertices,
+        .pSysMem = sponge->vertices,
         .SysMemPitch = 0,
         .SysMemSlicePitch = 0,
     };
@@ -500,19 +500,19 @@ void InitD3D(HWND windowHandle) {
     }
     fprintf(instanceLog, "Vertex buffer created: code %lx\n", code);
 #endif
-    stride = sizeof *(spongeData->vertices);
+    stride = sizeof *(sponge->vertices);
     offset = 0;
     graphicsPipeline->lpVtbl->IASetVertexBuffers(graphicsPipeline, 0, 1, &shapeBuffer, &stride, &offset);
 
     
     // INDICES
     iBufferDesc = (D3D11_BUFFER_DESC) {
-        .ByteWidth       = spongeData->indexCount * sizeof *(spongeData->indices),
+        .ByteWidth       = sponge->indexCount * sizeof *(sponge->indices),
         .BindFlags       = D3D11_BIND_INDEX_BUFFER,
         .Usage           = D3D11_USAGE_DEFAULT,
     };
     iInitData = (D3D11_SUBRESOURCE_DATA) {
-        .pSysMem = spongeData->indices,
+        .pSysMem = sponge->indices,
         .SysMemPitch = 0,
         .SysMemSlicePitch = 0,
     };
@@ -643,7 +643,7 @@ void CALLBACK RenderFrame(HWND window, UINT a, UINT_PTR b, DWORD c) {
 
 
     // draw the vertex buffer to the back buffer
-    graphicsPipeline->lpVtbl->DrawIndexed(graphicsPipeline, spongeData->indexCount, 0, 0);
+    graphicsPipeline->lpVtbl->DrawIndexed(graphicsPipeline, sponge->indexCount, 0, 0);
 
     // switch the back buffer and the front buffer
     // MSDN: Presents a rendered image to the user.

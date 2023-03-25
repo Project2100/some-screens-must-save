@@ -1,7 +1,7 @@
 #define LCL2 LAYER_UP(LCL1)
 #define TCL2 4
 
-layer L2_templates[TCL2] = {
+Layer L2_templates[TCL2] = {
     {
         .vtxcount = 40,
         .idxCount = 3 * 28,
@@ -41,21 +41,14 @@ layer L2_templates[TCL2] = {
     }
 };
 
-layer L2_templates_flipped[TCL2] = {0};
-
-void L2_completeLayers() {
-
-    for (int i = 0; i < TCL2; i++) {
-        L2_templates_flipped[i] = L2_templates[i];
-        L2_templates_flipped[i].indexmap = flipLayer(L2_templates[i].indexmap, L2_templates[i].idxCount);
-    }
-
-}
+Layer L2_templates_flipped[TCL2] = {0};
 
 
-layerInfo mengerL2 = {
+IndexingKit mengerL2 = {
     .layerCount = LCL2,
-    .layers = (layer*[LCL2]) {
+    .templates = L2_templates,
+    .templatesFlipped = L2_templates_flipped,
+    .templateSequence = (Layer*[LCL2]) {
         L2_templates,
 
         L2_templates_flipped + 1,
@@ -73,5 +66,4 @@ layerInfo mengerL2 = {
         
         L2_templates_flipped
     },
-    .compileLayers = &L2_completeLayers
 };

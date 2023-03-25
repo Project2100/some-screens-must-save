@@ -35,17 +35,18 @@ typedef struct {
     unsigned int vtxcount;
     unsigned int idxCount;
     unsigned int* indexmap;
-} layer;
+} Layer;
 
 typedef struct {
-    layer** layers;
+    Layer** templateSequence;
+    Layer* templates;
+    Layer* templatesFlipped;
     unsigned int layerCount;
-    void (*compileLayers)();
-} layerInfo;
+} IndexingKit;
 
 
 
-shape* spongeData;
+shape* sponge;
 
 
 // The vertex comparators, one for each axis
@@ -114,7 +115,7 @@ int (*comparators[3])(void*, const void*, const void*) = {xpovCompare, ypovCompa
 //
 // NOTE: is it possible to enforce const on vertices without warnings on qsort?
 // This is probably indicating that there is an alternate approach that does not rely on the context argument...
-void buildIndexMap(vertex* vertices, unsigned int vtxcount, layer** layers, unsigned int layerCount, unsigned int** fullIndexMap, unsigned int* indexMapCount) {
+void buildIndexMap(vertex* vertices, unsigned int vtxcount, Layer** layers, unsigned int layerCount, unsigned int** fullIndexMap, unsigned int* indexMapCount) {
 
     // Allocate the index map
     // Map size: #axes * sum(layerIndexCounts)
@@ -231,7 +232,7 @@ typedef struct {
     unsigned int innerCount;
     unsigned int planeCount;
 
-} replica;
+} SpongePrototype;
 
 
 
@@ -395,7 +396,7 @@ void cloneVertices(vertex* dest, unsigned int* caret, vertex* plane, const unsig
 }
 
 
-void levelUp(replica* block) {
+void levelUp(SpongePrototype* block) {
 
     unsigned int biginnerCount = block->innerCount * 20 + block->planeCount * 24 + 8;
     unsigned int bigplaneCount = block->planeCount * 8 + 4;
@@ -668,7 +669,7 @@ void adjust(vertex* vertices, unsigned int count, int level) {
 }
 
 
-vertex* flatten(replica* sponge) {
+vertex* flatten(SpongePrototype* sponge) {
     
     vertex cubeVtcs[] = {
         {{ SU,  SU, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
@@ -718,48 +719,48 @@ vertex* flatten(replica* sponge) {
 
 void buildShape(int spongeLevel) {
     
-    spongeData = calloc(1, sizeof *spongeData);
+    sponge = calloc(1, sizeof *sponge);
 
     // VERTEX GENERATION
 
     // Build the vertex set by applying the constructive iteration method of a Menger sponge
     // NOTE: This does not actually add the 8 corners of the bounding cube, which is done by "flatten"
-    replica base = {0};
-    for (int i = 0; i < spongeLevel; levelUp(&base), i++);
+    SpongePrototype proto = {0};
+    for (int i = 0; i < spongeLevel; levelUp(&proto), i++);
     
 #ifdef DEBUG
     fprintf(instanceLog, "Flattening internal vertex list, and adding the 8 cube corners\n");
 #endif
 
-    spongeData->vertices = flatten(&base);
-    spongeData->vertexCount = base.innerCount + 8 + 6 * base.planeCount;
+    sponge->vertices = flatten(&proto);
+    sponge->vertexCount = proto.innerCount + 8 + 6 * proto.planeCount;
 
 #ifdef DEBUG
     fprintf(instanceLog, "Adjusting vertex coordinates\n");
 #endif
 
-    adjust(spongeData->vertices, spongeData->vertexCount, spongeLevel);
+    adjust(sponge->vertices, sponge->vertexCount, spongeLevel);
 
 
     // INDEX MAP GENERATION
 
-    layerInfo* layerData;
+    IndexingKit* kit;
 
     switch (spongeLevel) {
     case 0:
-        layerData = &mengerL0;
+        kit = &mengerL0;
         break;
 
     case 1:
-        layerData = &mengerL1;
+        kit = &mengerL1;
         break;
 
     case 2:
-        layerData = &mengerL2;
+        kit = &mengerL2;
         break;
 
     case 3:
-        layerData = &mengerL3;
+        kit = &mengerL3;
         break;
     }
 
@@ -767,23 +768,26 @@ void buildShape(int spongeLevel) {
     fprintf(instanceLog, "Flipping templates\n");
 #endif
 
-    (*(layerData->compileLayers))();
+    // Observation: number of distinct templates is conjectured to be 2 ^ sponge level
+    Layer* boundary = kit->templates + (1 << spongeLevel);
+    // Generate the flipped layer templates
+    for (Layer* normal = kit->templates, * flipped = kit->templatesFlipped; normal < boundary; normal++, flipped++) {
+        *flipped = *normal;
+        flipped->indexmap = flipLayer(normal->indexmap, normal->idxCount);
+    }
 
 #ifdef DEBUG
     fprintf(instanceLog, "Building index map\n");
 #endif
 
-    buildIndexMap(spongeData->vertices, spongeData->vertexCount, layerData->layers, layerData->layerCount, &(spongeData->indices), &(spongeData->indexCount));
+    buildIndexMap(sponge->vertices, sponge->vertexCount, kit->templateSequence, kit->layerCount, &(sponge->indices), &(sponge->indexCount));
 
 #ifdef DEBUG
-    fprintf(instanceLog, "Map built, size: %u\n", spongeData->indexCount);
+    fprintf(instanceLog, "Map built, size: %u\n", sponge->indexCount);
 
-    for (unsigned int i = 0; i < spongeData->indexCount; i++){
-        fprintf(instanceLog, "%u\n", spongeData->indices[i]);
+    for (unsigned int i = 0; i < sponge->indexCount; i++){
+        fprintf(instanceLog, "%u\n", sponge->indices[i]);
     }
 #endif
 
-#ifdef DEBUG
-    fprintf(instanceLog, "Shape: vtxbytes %u, idxbytes %u, idxcount %u\n", spongeData.vertexSize, spongeData.indexSize, spongeData.indexCount);
-#endif
 }

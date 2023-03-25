@@ -17,7 +17,7 @@ typedef struct {
 } shape;
 
 
-extern shape* spongeData;
+extern shape* sponge;
 
 
-void buildShape();
+void buildShape(int spongeLevel);

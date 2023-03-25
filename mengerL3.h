@@ -1,7 +1,7 @@
 #define LCL3 LAYER_UP(LCL2)
 #define TCL3 8
 
-layer L3_templates[TCL3] = {
+Layer L3_templates[TCL3] = {
     {
         .vtxcount = 296,
         .idxCount = 3 * 208,
@@ -268,21 +268,14 @@ layer L3_templates[TCL3] = {
     }
 };
 
-layer L3_templates_flipped[TCL3] = {0};
-
-void L3_completeLayers() {
-
-    for (int i = 0; i < TCL3; i++) {
-        L3_templates_flipped[i] = L3_templates[i];
-        L3_templates_flipped[i].indexmap = flipLayer(L3_templates[i].indexmap, L3_templates[i].idxCount);
-    }
-
-}
+Layer L3_templates_flipped[TCL3] = {0};
 
 
-layerInfo mengerL3 = {
+IndexingKit mengerL3 = {
     .layerCount = LCL3,
-    .layers = (layer*[LCL3]) {
+    .templates = L3_templates,
+    .templatesFlipped = L3_templates_flipped,
+    .templateSequence = (Layer*[LCL3]) {
         L3_templates,
 
         L3_templates_flipped + 1,
@@ -330,5 +323,4 @@ layerInfo mengerL3 = {
 
         L3_templates_flipped
     },
-    .compileLayers = &L3_completeLayers
 };
