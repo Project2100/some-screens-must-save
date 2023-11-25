@@ -8,6 +8,9 @@
 // Unit shorthand for vertex maps
 #define SU SIDE_UNIT
 
+// The default color RGBA literal of vertices, currently white
+#define SSMS_WHITE {1.0f, 1.0f, 1.0f, 1.0f}
+
 
 // D3D11 GEOMETRY REMINDERS:
 //
@@ -49,9 +52,11 @@ typedef struct {
 shape* sponge;
 
 
-// The vertex comparators, one for each axis
+// The vertex comparators, one for each POV
 //
-// Sorting done from negative coordinates to positive coordinates; e.g. for ZPOV, in descending priority:
+// Single axis sorting done in ascending order (i.e. from negative coordinates to positive coordinates)
+//
+// E.g. for ZPOV, in descending priority:
 // 1. back to front
 // 2. bottom to top
 // 3. left to right
@@ -109,13 +114,13 @@ int (*comparators[3])(void*, const void*, const void*) = {xpovCompare, ypovCompa
 // By knowing the vertex count into each layer, layer-by-layer operations can be done safely
 //
 // 2. Once the sorting map is ready, each index will be saved in the full map by taking the corresponding index in the template of the current layer,
-// offsetting it by the previous completed layers, and then reverse-mapping it through the serting map
+// offsetting it by the previous completed layers, and then reverse-mapping it through the sorting map
 //
 // CAUTION: layers is an array of pointers, fullindexmap is a pointer to an array!
 //
 // NOTE: is it possible to enforce const on vertices without warnings on qsort?
 // This is probably indicating that there is an alternate approach that does not rely on the context argument...
-void buildIndexMap(vertex* vertices, unsigned int vtxcount, Layer** layers, unsigned int layerCount, unsigned int** fullIndexMap, unsigned int* indexMapCount) {
+void buildIndexMap(vertex* vertices, unsigned int vtxcount, Layer* layers[], unsigned int layerCount, unsigned int** fullIndexMap, unsigned int* indexMapCount) {
 
     // Allocate the index map
     // Map size: #axes * sum(layerIndexCounts)
@@ -181,7 +186,7 @@ void buildIndexMap(vertex* vertices, unsigned int vtxcount, Layer** layers, unsi
     free(sortingMap);
 }
 
-// This allocates a copy of the input layer, with the visible side as the opposite one
+// This allocates a copy of the input layer, with the visible side being the opposite one
 //
 // This is accomplished by swapping two of the three vertices of all the tringles composing the layer
 // This swappping action changes the triangles' index order from clockwise to counter-clockwise, hence "flipping" the visible side of all triangles making the layer
@@ -426,14 +431,14 @@ void levelUp(SpongePrototype* block) {
     unsigned int innerCaret = 0;
 
     // The 8 grid vertices
-    biginner[innerCaret++] = (vertex) {{ SU/3,  SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    biginner[innerCaret++] = (vertex) {{ SU/3, -SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    biginner[innerCaret++] = (vertex) {{-SU/3,  SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    biginner[innerCaret++] = (vertex) {{-SU/3, -SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    biginner[innerCaret++] = (vertex) {{ SU/3,  SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    biginner[innerCaret++] = (vertex) {{ SU/3, -SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    biginner[innerCaret++] = (vertex) {{-SU/3,  SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    biginner[innerCaret++] = (vertex) {{-SU/3, -SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    biginner[innerCaret++] = (vertex) {{ SU/3,  SU/3, -SU/3, 1}, SSMS_WHITE};
+    biginner[innerCaret++] = (vertex) {{ SU/3, -SU/3, -SU/3, 1}, SSMS_WHITE};
+    biginner[innerCaret++] = (vertex) {{-SU/3,  SU/3, -SU/3, 1}, SSMS_WHITE};
+    biginner[innerCaret++] = (vertex) {{-SU/3, -SU/3, -SU/3, 1}, SSMS_WHITE};
+    biginner[innerCaret++] = (vertex) {{ SU/3,  SU/3,  SU/3, 1}, SSMS_WHITE};
+    biginner[innerCaret++] = (vertex) {{ SU/3, -SU/3,  SU/3, 1}, SSMS_WHITE};
+    biginner[innerCaret++] = (vertex) {{-SU/3,  SU/3,  SU/3, 1}, SSMS_WHITE};
+    biginner[innerCaret++] = (vertex) {{-SU/3, -SU/3,  SU/3, 1}, SSMS_WHITE};
     
     // The 20 blocks
     cloneVertices(biginner, &innerCaret, block->inner, block->innerCount, pppTransform);
@@ -510,10 +515,10 @@ void levelUp(SpongePrototype* block) {
     cloneVertices(bigplaneXp, &innerCaret, block->planeXp, block->planeCount, pcnTransform);
     cloneVertices(bigplaneXp, &innerCaret, block->planeXp, block->planeCount, ppnTransform);
     cloneVertices(bigplaneXp, &innerCaret, block->planeXp, block->planeCount, ppcTransform);
-    bigplaneXp[innerCaret++] = (vertex) {{ SU,  SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    bigplaneXp[innerCaret++] = (vertex) {{ SU,  SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    bigplaneXp[innerCaret++] = (vertex) {{ SU, -SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    bigplaneXp[innerCaret++] = (vertex) {{ SU, -SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneXp[innerCaret++] = (vertex) {{ SU,  SU/3,  SU/3, 1}, SSMS_WHITE};
+    bigplaneXp[innerCaret++] = (vertex) {{ SU,  SU/3, -SU/3, 1}, SSMS_WHITE};
+    bigplaneXp[innerCaret++] = (vertex) {{ SU, -SU/3,  SU/3, 1}, SSMS_WHITE};
+    bigplaneXp[innerCaret++] = (vertex) {{ SU, -SU/3, -SU/3, 1}, SSMS_WHITE};
 
 #ifdef DEBUG
     fprintf(instanceLog, "Xn\n");
@@ -528,10 +533,10 @@ void levelUp(SpongePrototype* block) {
     cloneVertices(bigplaneXn, &innerCaret, block->planeXn, block->planeCount, ncnTransform);
     cloneVertices(bigplaneXn, &innerCaret, block->planeXn, block->planeCount, npnTransform);
     cloneVertices(bigplaneXn, &innerCaret, block->planeXn, block->planeCount, npcTransform);
-    bigplaneXn[innerCaret++] = (vertex) {{-SU,  SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    bigplaneXn[innerCaret++] = (vertex) {{-SU,  SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    bigplaneXn[innerCaret++] = (vertex) {{-SU, -SU/3,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    bigplaneXn[innerCaret++] = (vertex) {{-SU, -SU/3, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneXn[innerCaret++] = (vertex) {{-SU,  SU/3,  SU/3, 1}, SSMS_WHITE};
+    bigplaneXn[innerCaret++] = (vertex) {{-SU,  SU/3, -SU/3, 1}, SSMS_WHITE};
+    bigplaneXn[innerCaret++] = (vertex) {{-SU, -SU/3,  SU/3, 1}, SSMS_WHITE};
+    bigplaneXn[innerCaret++] = (vertex) {{-SU, -SU/3, -SU/3, 1}, SSMS_WHITE};
 
 
 #ifdef DEBUG
@@ -547,10 +552,10 @@ void levelUp(SpongePrototype* block) {
     cloneVertices(bigplaneYp, &innerCaret, block->planeYp, block->planeCount, cpnTransform);
     cloneVertices(bigplaneYp, &innerCaret, block->planeYp, block->planeCount, ppnTransform);
     cloneVertices(bigplaneYp, &innerCaret, block->planeYp, block->planeCount, ppcTransform);
-    bigplaneYp[innerCaret++] = (vertex) {{ SU/3,  SU,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    bigplaneYp[innerCaret++] = (vertex) {{ SU/3,  SU, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    bigplaneYp[innerCaret++] = (vertex) {{-SU/3,  SU,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    bigplaneYp[innerCaret++] = (vertex) {{-SU/3,  SU, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneYp[innerCaret++] = (vertex) {{ SU/3,  SU,  SU/3, 1}, SSMS_WHITE};
+    bigplaneYp[innerCaret++] = (vertex) {{ SU/3,  SU, -SU/3, 1}, SSMS_WHITE};
+    bigplaneYp[innerCaret++] = (vertex) {{-SU/3,  SU,  SU/3, 1}, SSMS_WHITE};
+    bigplaneYp[innerCaret++] = (vertex) {{-SU/3,  SU, -SU/3, 1}, SSMS_WHITE};
 
 #ifdef DEBUG
     fprintf(instanceLog, "Yn\n");
@@ -565,10 +570,10 @@ void levelUp(SpongePrototype* block) {
     cloneVertices(bigplaneYn, &innerCaret, block->planeYn, block->planeCount, cnnTransform);
     cloneVertices(bigplaneYn, &innerCaret, block->planeYn, block->planeCount, pnnTransform);
     cloneVertices(bigplaneYn, &innerCaret, block->planeYn, block->planeCount, pncTransform);
-    bigplaneYn[innerCaret++] = (vertex) {{ SU/3, -SU,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    bigplaneYn[innerCaret++] = (vertex) {{ SU/3, -SU, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    bigplaneYn[innerCaret++] = (vertex) {{-SU/3, -SU,  SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    bigplaneYn[innerCaret++] = (vertex) {{-SU/3, -SU, -SU/3, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneYn[innerCaret++] = (vertex) {{ SU/3, -SU,  SU/3, 1}, SSMS_WHITE};
+    bigplaneYn[innerCaret++] = (vertex) {{ SU/3, -SU, -SU/3, 1}, SSMS_WHITE};
+    bigplaneYn[innerCaret++] = (vertex) {{-SU/3, -SU,  SU/3, 1}, SSMS_WHITE};
+    bigplaneYn[innerCaret++] = (vertex) {{-SU/3, -SU, -SU/3, 1}, SSMS_WHITE};
 
 
 #ifdef DEBUG
@@ -584,10 +589,10 @@ void levelUp(SpongePrototype* block) {
     cloneVertices(bigplaneZp, &innerCaret, block->planeZp, block->planeCount, cnpTransform);
     cloneVertices(bigplaneZp, &innerCaret, block->planeZp, block->planeCount, pnpTransform);
     cloneVertices(bigplaneZp, &innerCaret, block->planeZp, block->planeCount, pcpTransform);
-    bigplaneZp[innerCaret++] = (vertex) {{ SU/3,  SU/3,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    bigplaneZp[innerCaret++] = (vertex) {{ SU/3, -SU/3,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    bigplaneZp[innerCaret++] = (vertex) {{-SU/3,  SU/3,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    bigplaneZp[innerCaret++] = (vertex) {{-SU/3, -SU/3,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneZp[innerCaret++] = (vertex) {{ SU/3,  SU/3,  SU, 1}, SSMS_WHITE};
+    bigplaneZp[innerCaret++] = (vertex) {{ SU/3, -SU/3,  SU, 1}, SSMS_WHITE};
+    bigplaneZp[innerCaret++] = (vertex) {{-SU/3,  SU/3,  SU, 1}, SSMS_WHITE};
+    bigplaneZp[innerCaret++] = (vertex) {{-SU/3, -SU/3,  SU, 1}, SSMS_WHITE};
 
 #ifdef DEBUG
     fprintf(instanceLog, "Zn\n");
@@ -602,10 +607,10 @@ void levelUp(SpongePrototype* block) {
     cloneVertices(bigplaneZn, &innerCaret, block->planeZn, block->planeCount, cnnTransform);
     cloneVertices(bigplaneZn, &innerCaret, block->planeZn, block->planeCount, pnnTransform);
     cloneVertices(bigplaneZn, &innerCaret, block->planeZn, block->planeCount, pcnTransform);
-    bigplaneZn[innerCaret++] = (vertex) {{ SU/3,  SU/3, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    bigplaneZn[innerCaret++] = (vertex) {{ SU/3, -SU/3, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    bigplaneZn[innerCaret++] = (vertex) {{-SU/3,  SU/3, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
-    bigplaneZn[innerCaret++] = (vertex) {{-SU/3, -SU/3, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}};
+    bigplaneZn[innerCaret++] = (vertex) {{ SU/3,  SU/3, -SU, 1}, SSMS_WHITE};
+    bigplaneZn[innerCaret++] = (vertex) {{ SU/3, -SU/3, -SU, 1}, SSMS_WHITE};
+    bigplaneZn[innerCaret++] = (vertex) {{-SU/3,  SU/3, -SU, 1}, SSMS_WHITE};
+    bigplaneZn[innerCaret++] = (vertex) {{-SU/3, -SU/3, -SU, 1}, SSMS_WHITE};
 
     
 #ifdef DEBUG
@@ -672,14 +677,14 @@ void adjust(vertex* vertices, unsigned int count, int level) {
 vertex* flatten(SpongePrototype* sponge) {
     
     vertex cubeVtcs[] = {
-        {{ SU,  SU, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
-        {{ SU, -SU, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
-        {{-SU,  SU, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
-        {{-SU, -SU, -SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
-        {{ SU,  SU,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
-        {{ SU, -SU,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
-        {{-SU,  SU,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
-        {{-SU, -SU,  SU, 1}, {0.3f, 0.3f, 0.3f, 1.0f}},
+        {{ SU,  SU, -SU, 1}, SSMS_WHITE},
+        {{ SU, -SU, -SU, 1}, SSMS_WHITE},
+        {{-SU,  SU, -SU, 1}, SSMS_WHITE},
+        {{-SU, -SU, -SU, 1}, SSMS_WHITE},
+        {{ SU,  SU,  SU, 1}, SSMS_WHITE},
+        {{ SU, -SU,  SU, 1}, SSMS_WHITE},
+        {{-SU,  SU,  SU, 1}, SSMS_WHITE},
+        {{-SU, -SU,  SU, 1}, SSMS_WHITE},
     };
 
     vertex* vtx = malloc((8 + sponge->innerCount + 6 * sponge->planeCount) * sizeof *(sponge->inner));
@@ -732,6 +737,7 @@ void buildShape(int spongeLevel) {
     fprintf(instanceLog, "Flattening internal vertex list, and adding the 8 cube corners\n");
 #endif
 
+    // NOTE: THIS DESTROYS PROTO
     sponge->vertices = flatten(&proto);
     sponge->vertexCount = proto.innerCount + 8 + 6 * proto.planeCount;
 

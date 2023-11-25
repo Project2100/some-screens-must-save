@@ -56,6 +56,8 @@ transformMatrices transforms = {
 };
 
 
+float startColor[4] = {1.0f, 0.0f, 0.0f, 1.0f};
+
 
 // Graphics device log
 ID3D11InfoQueue* debugQueue;
@@ -87,6 +89,7 @@ ID3D11InputLayout* inputLayout;
 ID3D11Buffer* shapeBuffer;
 ID3D11Buffer* indexBuffer;
 ID3D11Buffer* transformBuffer;
+ID3D11Buffer* colorBuffer;
 
 // The "virtual camera"
 D3D11_VIEWPORT viewport;
@@ -550,6 +553,29 @@ void InitD3D(HWND windowHandle) {
     graphicsPipeline->lpVtbl->VSSetConstantBuffers(graphicsPipeline, 0, 1, &transformBuffer);
 
 
+    // COLORS
+    cBufferDesc = (D3D11_BUFFER_DESC) {
+        .ByteWidth      = sizeof startColor,
+        .BindFlags      = D3D11_BIND_CONSTANT_BUFFER,
+        .Usage          = D3D11_USAGE_DYNAMIC,
+        .CPUAccessFlags = D3D11_CPU_ACCESS_WRITE,
+    };
+    cInitData = (D3D11_SUBRESOURCE_DATA) {
+        .pSysMem = &startColor,
+        .SysMemPitch = 0,
+        .SysMemSlicePitch = 0,
+    };
+    code = graphicsDevice->lpVtbl->CreateBuffer(graphicsDevice, &cBufferDesc, &cInitData, &colorBuffer);
+#ifdef DEBUG
+    if (FAILED(code)) {
+        fprintf(instanceLog, "Failed creating color buffer: code %lx\n", code);
+        ExitProcess(EXIT_FAILURE);
+    }
+    fprintf(instanceLog, "Color buffer created: code %lx\n", code);
+#endif
+    graphicsPipeline->lpVtbl->PSSetConstantBuffers(graphicsPipeline, 0, 1, &colorBuffer);
+
+
 
 #ifdef DEBUG
     fprintf(instanceLog, "Init graphics done\n");
@@ -621,11 +647,75 @@ void applyRotation(void) {
 
 
 
+byte src = 0;
+const float shift = 0.004f;
+void applyColor(void) {
+
+    switch (src) {
+        case 0:
+        startColor[0] -= shift;
+        startColor[1] += shift;
+        if (startColor[1] >= 1.0f) src = 1, startColor[0] = 0;
+        break;
+        case 1:
+        startColor[1] -= shift;
+        startColor[2] += shift;
+        if (startColor[2] >= 1.0f) src = 2, startColor[1] = 0;
+        break;
+        case 2:
+        startColor[2] -= shift;
+        startColor[0] += shift;
+        if (startColor[0] >= 1.0f) src = 0, startColor[2] = 0;
+        break;
+        default:
+        exit (0);
+    }
+}
+
+byte src2 = 0;
+void applyColor2(void) {
+
+    switch (src2) {
+        case 0:
+        startColor[1] += shift;
+        if (startColor[1] >= 1.0f) src2 = 1, startColor[1] = 1.0f;
+        break;
+        case 1:
+        startColor[0] -= shift;
+        if (startColor[0] <= 0.0f) src2 = 2, startColor[0] = 0.0f;
+        break;
+        case 2:
+        startColor[2] += shift;
+        if (startColor[2] >= 1.0f) src2 = 3, startColor[2] = 1.0f;
+        break;
+        case 3:
+        startColor[1] -= shift;
+        if (startColor[1] <= 0.0f) src2 = 4, startColor[1] = 0.0f;
+        break;
+        case 4:
+        startColor[0] += shift;
+        if (startColor[0] >= 1.0f) src2 = 5, startColor[0] = 1.0f;
+        break;
+        case 5:
+        startColor[2] -= shift;
+        if (startColor[2] <= 0.0f) src2 = 0, startColor[2] = 0.0f;
+        break;
+        default:
+        exit (0);
+    }
+}
+
+
+
 // this is the function used to render a single frame
+static D3D11_MAPPED_SUBRESOURCE mappedBuffer;
 void CALLBACK RenderFrame(HWND window, UINT a, UINT_PTR b, DWORD c) {
 
     // animate the shape!
     applyRotation();
+
+    // shift the color!
+    applyColor2();
 
     // clear the back buffer to a black background, and reset the depth stencil buffer
     graphicsPipeline->lpVtbl->ClearRenderTargetView(graphicsPipeline, renderTargetView, (float []) {0.0f, 0.0f, 0.0f, 1.0f});
@@ -633,13 +723,18 @@ void CALLBACK RenderFrame(HWND window, UINT a, UINT_PTR b, DWORD c) {
 
 
     // Map, copy, then unmap. Easy.
-    D3D11_MAPPED_SUBRESOURCE mappedBuffer;
     // DOWNCAST
     HRESULT code = graphicsPipeline->lpVtbl->Map(graphicsPipeline, (LPVOID) transformBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBuffer);
     // memcpy(mappedBuffer.pData, &transforms, sizeof transforms);
     MoveMemory(mappedBuffer.pData, &transforms, sizeof transforms);
     // DOWNCAST
     graphicsPipeline->lpVtbl->Unmap(graphicsPipeline, (LPVOID) transformBuffer, 0);
+    // DOWNCAST
+    HRESULT code2 = graphicsPipeline->lpVtbl->Map(graphicsPipeline, (LPVOID) colorBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBuffer);
+    // memcpy(mappedBuffer.pData, &transforms, sizeof transforms);
+    MoveMemory(mappedBuffer.pData, &startColor, sizeof startColor);
+    // DOWNCAST
+    graphicsPipeline->lpVtbl->Unmap(graphicsPipeline, (LPVOID) colorBuffer, 0);
 
 
     // draw the vertex buffer to the back buffer

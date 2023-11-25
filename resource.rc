@@ -3,24 +3,28 @@
 
 #include "controls.h"
 
+// General settings
+
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+
+ID_APP ICON SSMS.ICO
+STRINGTABLE 
+BEGIN
+    IDS_DESCRIPTION "Some screens must save"
+END
+
 // Layout macros
 
 #define DIALOG_WIDTH 180
 #define DIALOG_HEIGHT 63
 
-ID_APP ICON SSMS.ICO
-STRINGTABLE {
-    IDS_DESCRIPTION "Some screens must save"
-}
-
 DLG_SCRNSAVECONFIGURE DIALOG 6, 18, DIALOG_WIDTH, DIALOG_HEIGHT
-LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 STYLE DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
 CAPTION "How will you save your screen?"
-FONT 8, "MS Shell Dlg"
+//FONT 8, "MS Shell Dlg"
 // AP210523: MS started using Segoe as default since Windos Vista (6.0+?), and it is much nicer to read
 // No idea on how to set this at runtime to avoid problems on older versions, but maybe there is a way...?
-//FONT 8, "Segoe UI"
+FONT 8, "Segoe UI"
 BEGIN
 
     RTEXT           "Sponge level:" LABEL_SPONGE, 6, 8, 50, 8
