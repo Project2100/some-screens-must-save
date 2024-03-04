@@ -3,3 +3,5 @@
 FILE* instanceLog;
 
 FILE* devLog;
+
+FILE* configLog;

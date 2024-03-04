@@ -7,7 +7,7 @@
 #include <windows.h>
 
 
-void InitD3D(HWND window);
+void InitD3D(HWND window, float rainbowShift);
 
 void resizeD3D(int width, int height);
 

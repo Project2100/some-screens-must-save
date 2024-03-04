@@ -180,9 +180,14 @@ void squareViewport(int screenWidth, int screenHeight) {
 
 
 
+float shift;
+
+
 
 // The whole process of firing up DirectX
-void InitD3D(HWND windowHandle) {
+void InitD3D(HWND windowHandle, float rainbowShift) {
+
+    shift = rainbowShift;
 
     
     // Initialize the orientation matrix
@@ -648,7 +653,6 @@ void applyRotation(void) {
 
 
 byte src = 0;
-const float shift = 0.004f;
 void applyColor(void) {
 
     switch (src) {
