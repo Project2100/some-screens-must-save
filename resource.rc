@@ -8,10 +8,21 @@
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 
 ID_APP ICON SSMS.ICO
-STRINGTABLE 
-BEGIN
-    IDS_DESCRIPTION "Some screens must save"
-END
+
+
+
+// VS_VERSION_INFO VERSIONINFO
+// {
+//     BLOCK "StringFileInfo"
+//     { 
+//         BLOCK "040904b0"
+//         {
+//             VALUE "FileDescription",  "Some screens must save Screen Saver\0"
+//         } 
+//     }
+// }
+
+
 
 // Layout macros
 

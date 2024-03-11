@@ -16,13 +16,6 @@
 #include "graphics.h"
 #include "dynamenger.h"
 
-#pragma comment(lib, "user32.lib")
-#pragma comment(lib, "comctl32.lib")
-#pragma comment(lib, "Advapi32.lib")
-#pragma comment(lib, "gdi32.lib")
-#pragma comment(lib, "ScrnSavW.lib")
-#pragma comment(linker, "/subsystem:windows")
-
 #include "controls.h"
 
 
