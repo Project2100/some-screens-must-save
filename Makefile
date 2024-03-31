@@ -2,10 +2,8 @@
 
 
 debug: resource.res vertex.h pixel.h
-	cl /nologo /W3 /std:c17 /c debug.c
-	cl /nologo /W3 /std:c17 /c /DDEBUG dynamenger.c
-	cl /nologo /W3 /std:c17 /c /DDEBUG graphics.c
-	cl /nologo /W3 /std:c17 /DDEBUG /Fe:ssms.scr resource.res main.c graphics.obj dynamenger.obj debug.obj
+	cl /nologo /W3 /std:c17 /c /DDEBUG debug.c dynamenger.c graphics.c main.c
+	link /nologo /OUT:ssms.scr /DEF:ssms.def /subsystem:windows user32.lib comctl32.lib Advapi32.lib gdi32.lib ScrnSavW.lib resource.res debug.obj dynamenger.obj graphics.obj main.obj
 
 release: resource.res vertex.h pixel.h
 	cl /nologo /W3 /std:c17 /c dynamenger.c graphics.c main.c
