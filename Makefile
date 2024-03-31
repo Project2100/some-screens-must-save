@@ -9,7 +9,7 @@ debug: resource.res vertex.h pixel.h
 
 release: resource.res vertex.h pixel.h
 	cl /nologo /W3 /std:c17 /c dynamenger.c graphics.c main.c
-	link /nologo /OUT:ssms.scr /subsystem:windows user32.lib comctl32.lib Advapi32.lib gdi32.lib ScrnSavW.lib resource.res dynamenger.obj graphics.obj main.obj
+	link /nologo /OUT:ssms.scr /DEF:ssms.def /subsystem:windows user32.lib comctl32.lib Advapi32.lib gdi32.lib ScrnSavW.lib resource.res dynamenger.obj graphics.obj main.obj
 
 run:
 	ssms.scr /s

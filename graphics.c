@@ -181,13 +181,15 @@ void squareViewport(int screenWidth, int screenHeight) {
 
 
 float shift;
+DWORD mode;
 
 
 
 // The whole process of firing up DirectX
-void InitD3D(HWND windowHandle, float rainbowShift) {
+void InitD3D(HWND windowHandle, DWORD cmode, float rainbowShift) {
 
     shift = rainbowShift;
+    mode = cmode;
 
     
     // Initialize the orientation matrix
@@ -558,6 +560,14 @@ void InitD3D(HWND windowHandle, float rainbowShift) {
     graphicsPipeline->lpVtbl->VSSetConstantBuffers(graphicsPipeline, 0, 1, &transformBuffer);
 
 
+    // OVERRIDE FOR COLOUR MODE 0 -- DEFAULT TO WHITE
+    if (mode == 0) {
+        startColor[0] = 1.0f;
+        startColor[1] = 1.0f;
+        startColor[2] = 1.0f;
+        startColor[3] = 1.0f;
+    }
+
     // COLORS
     cBufferDesc = (D3D11_BUFFER_DESC) {
         .ByteWidth      = sizeof startColor,
@@ -651,7 +661,7 @@ void applyRotation(void) {
 
 
 
-
+// UNUSED
 byte src = 0;
 void applyColor(void) {
 
@@ -719,7 +729,7 @@ void CALLBACK RenderFrame(HWND window, UINT a, UINT_PTR b, DWORD c) {
     applyRotation();
 
     // shift the color!
-    applyColor2();
+    if (mode == 1) applyColor2();
 
     // clear the back buffer to a black background, and reset the depth stencil buffer
     graphicsPipeline->lpVtbl->ClearRenderTargetView(graphicsPipeline, renderTargetView, (float []) {0.0f, 0.0f, 0.0f, 1.0f});

@@ -19,7 +19,7 @@
 #include "controls.h"
 
 
-#define REG_SCR_ROOT_PATH TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Screensavers\\SomeScreensMustSave")
+#define SSMS_REGISTRY_ROOT_PATH TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Screensavers\\SomeScreensMustSave")
 
 HKEY rootKey = NULL;
 
@@ -29,6 +29,12 @@ HKEY rootKey = NULL;
 DWORD spongeLevel;
 DWORD slSize = sizeof spongeLevel;
 
+#define SSMS_COLOURMODE_MIN 0
+#define SSMS_COLOURMODE_MAX 1
+#define SSMS_COLOURMODE_DEFAULT 0
+DWORD colourMode;
+DWORD cmSize = sizeof colourMode;
+
 #define SSMS_RAINBOWSPEED_MIN 10
 #define SSMS_RAINBOWSPEED_MAX 1000
 #define SSMS_RAINBOWSPEED_DEFAULT 40
@@ -36,15 +42,23 @@ DWORD rainbowSpeed;
 DWORD rsSize = sizeof rainbowSpeed;
 
 
+// Reads the screensaver's configuration from its registry values
+// Is (and must be) called when setting the screensaver options, or actually running the screensaver itself
+//
+// Overview:
+// - Open the root key for the screensaver (creates it, if it does not exist)
+// - Read each value one by one
+// - On each read, use hardcoded default value when one of the conditions below apply:
+//   - If read goes wrong (value does not exist)
+//   - If read value is of unexpected type
+//   - If value is outside bounds
 
 void GetScrConfig() {
-    // Open (or create) the screensaver's registry key
-    RegCreateKeyEx(HKEY_CURRENT_USER, REG_SCR_ROOT_PATH, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &rootKey, NULL);
-
-    // Allows to check the returned value type
+    
+    RegCreateKeyEx(HKEY_CURRENT_USER, SSMS_REGISTRY_ROOT_PATH, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &rootKey, NULL);
     DWORD regValueType;
 
-    // Read the sponge level from the registry, defaults to 1
+    // Sponge level
     // DOWNCAST
     switch (RegQueryValueEx(rootKey, REGNAME_SPONGE_LEVEL, NULL, &regValueType, (LPVOID) &spongeLevel, &slSize)) {
     case ERROR_SUCCESS:
@@ -55,12 +69,26 @@ void GetScrConfig() {
     case ERROR_FILE_NOT_FOUND:
     case ERROR_MORE_DATA:
     default:
-        // Some error occurred, and we don't care
         spongeLevel = SSMS_SPONGELEVEL_DEFAULT;
         break;
     }
+
+    // Colour mode
+    // DOWNCAST
+    switch (RegQueryValueEx(rootKey, REGNAME_COLOUR_MODE, NULL, &regValueType, (LPVOID) &colourMode, &cmSize)) {
+    case ERROR_SUCCESS:
+        if (regValueType != REG_DWORD || colourMode < SSMS_COLOURMODE_MIN || colourMode > SSMS_COLOURMODE_MAX) {
+            colourMode = SSMS_COLOURMODE_DEFAULT;
+        }
+        break;
+    case ERROR_FILE_NOT_FOUND:
+    case ERROR_MORE_DATA:
+    default:
+        colourMode = SSMS_COLOURMODE_DEFAULT;
+        break;
+    }
     
-    // Read the speed at which the shape colour shifts, defaults to 1
+    // Rainbow shift speed
     // DOWNCAST
     switch (RegQueryValueEx(rootKey, REGNAME_RAINBOW_SPEED, NULL, &regValueType, (LPVOID) &rainbowSpeed, &rsSize)) {
     case ERROR_SUCCESS:
@@ -71,7 +99,6 @@ void GetScrConfig() {
     case ERROR_FILE_NOT_FOUND:
     case ERROR_MORE_DATA:
     default:
-        // Some error occurred, and we don't care
         rainbowSpeed = SSMS_RAINBOWSPEED_DEFAULT;
         break;
     }
@@ -90,8 +117,8 @@ LRESULT WINAPI ScreenSaverProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
     switch (message) {
 
     case WM_CREATE:
-        // Log construction
 #ifdef DEBUG
+        // Log construction
         instanceLog = fopen(LOG_MAIN_FILENAME, "w");
         setvbuf(instanceLog, NULL, _IONBF, 0);
         SYSTEMTIME st;
@@ -132,7 +159,7 @@ LRESULT WINAPI ScreenSaverProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 
 
 
-        InitD3D(hWnd, (float) rainbowSpeed / 10000);
+        InitD3D(hWnd, colourMode, (float) rainbowSpeed / 10000);
         
         // Set a timer for the screen saver window using the redraw rate stored in Regedit.ini
         uTimer = SetTimer(hWnd, 1, 13, RenderFrame);
@@ -179,8 +206,8 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, L
     switch (message) {
 
     case WM_INITDIALOG:
-        // Log construction
 #ifdef DEBUG
+        // Log construction
         configLog = fopen(LOG_CONFIG_FILENAME, "w");
         setvbuf(configLog, NULL, _IONBF, 0);
         SYSTEMTIME st;

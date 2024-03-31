@@ -14,4 +14,4 @@ extern FILE* devLog;
 
 extern FILE* configLog;
 
-#endif
+#endif // SSMS_DEBUG_H

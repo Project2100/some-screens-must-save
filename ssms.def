@@ -1,16 +1,16 @@
 NAME    SSMS.SCR 
 
-DESCRIPTION 'SCRNSAVE : Test' 
+; DESCRIPTION 'SCRNSAVE : Test' 
  
-STUB    'WINSTUB.EXE' 
-EXETYPE WINDOWS 
+; STUB    'WINSTUB.EXE' 
+; EXETYPE WINDOWS 
  
-CODE    MOVEABLE 
-DATA    MOVEABLE MULTIPLE 
+; CODE    MOVEABLE 
+; DATA    MOVEABLE MULTIPLE 
  
 HEAPSIZE  1024 
 STACKSIZE 4096 
  
 EXPORTS 
-        ScreenSaverProc 
+        ScreenSaverProc=ScreenSaverProcW
         ScreenSaverConfigureDialog
